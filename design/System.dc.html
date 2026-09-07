@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+  <style>
+    :root{
+      --paper:#F5F1E8; --card:#FCFAF4; --ink:#1F1B16; --ink2:#5C554A; --faint:#8A8272;
+      --rule:#DCD5C6; --rule2:#C9C1B0;
+      --water:#33596B; --water-t:#E7EEF1;
+      --moss:#4A6E44;  --moss-t:#EAF0E7;
+      --verm:#B0512C;  --verm-t:#F7EAE3;
+      --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+      --serif:'Gowun Batang','Nanum Myeongjo',serif;
+      --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    body{ margin:0; background:var(--paper); color:var(--ink);
+          font-family:var(--sans); font-size:14px; line-height:1.55;
+          -webkit-font-smoothing:antialiased; }
+    body::after{ content:''; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:99;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    a{ color:var(--water); text-decoration-thickness:1px; text-underline-offset:3px; }
+    a:hover{ color:var(--verm); }
+    button{ font-family:inherit; }
+  </style>
+</helmet>
+<div style="padding:30px 34px 36px; display:flex; flex-direction:column; gap:28px">
+
+  <div>
+    <div style="font:500 11px/1 var(--mono); letter-spacing:.22em; color:var(--verm); margin-bottom:9px">DESIGN SYSTEM</div>
+    <h1 style="margin:0 0 4px; font:700 27px/1.2 var(--serif)">지리부도 (Atlas)</h1>
+    <p style="margin:0; font-size:13.5px; color:var(--ink2); max-width:60ch">스캔한 학습지의 흑백 지도가 주인공입니다. 종이색 바탕과 잉크빛 활자로 지도와 같은 결을 맞추고, 색은 지도 범례처럼 물빛·숲빛·주기 세 가지만 씁니다.</p>
+    <div style="margin-top:15px; border-top:2px solid var(--ink)"></div>
+    <div style="border-top:1px solid var(--ink); margin-top:2px"></div>
+  </div>
+
+  <div>
+    <div style="display:flex; align-items:center; gap:11px; margin-bottom:14px">
+      <span style="font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--ink2)">색</span>
+      <span style="flex-grow:1; height:1px; background:var(--rule2)"></span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:14px">
+      <div>
+        <div style="height:64px; background:#F5F1E8; border:1px solid rgba(31,27,22,.18); display:flex; align-items:flex-end; padding:7px 9px">
+          <span style="font:500 10px var(--mono); letter-spacing:.08em; color:#1F1B16">#F5F1E8</span>
+        </div>
+        <div style="font:600 12px var(--sans); margin-top:7px">종이</div>
+        <div style="font-size:11.5px; color:var(--ink2); line-height:1.45">바탕</div>
+      </div>
+      <div>
+        <div style="height:64px; background:#1F1B16; border:1px solid rgba(31,27,22,.18); display:flex; align-items:flex-end; padding:7px 9px">
+          <span style="font:500 10px var(--mono); letter-spacing:.08em; color:#FCFAF4">#1F1B16</span>
+        </div>
+        <div style="font:600 12px var(--sans); margin-top:7px">잉크</div>
+        <div style="font-size:11.5px; color:var(--ink2); line-height:1.45">본문·선택된 항목</div>
+      </div>
+      <div>
+        <div style="height:64px; background:#33596B; border:1px solid rgba(31,27,22,.18); display:flex; align-items:flex-end; padding:7px 9px">
+          <span style="font:500 10px var(--mono); letter-spacing:.08em; color:#FCFAF4">#33596B</span>
+        </div>
+        <div style="font:600 12px var(--sans); margin-top:7px">물빛</div>
+        <div style="font-size:11.5px; color:var(--ink2); line-height:1.45">주요 동작·선택</div>
+      </div>
+      <div>
+        <div style="height:64px; background:#4A6E44; border:1px solid rgba(31,27,22,.18); display:flex; align-items:flex-end; padding:7px 9px">
+          <span style="font:500 10px var(--mono); letter-spacing:.08em; color:#FCFAF4">#4A6E44</span>
+        </div>
+        <div style="font:600 12px var(--sans); margin-top:7px">숲빛</div>
+        <div style="font-size:11.5px; color:var(--ink2); line-height:1.45">정답·숙달</div>
+      </div>
+      <div>
+        <div style="height:64px; background:#B0512C; border:1px solid rgba(31,27,22,.18); display:flex; align-items:flex-end; padding:7px 9px">
+          <span style="font:500 10px var(--mono); letter-spacing:.08em; color:#FCFAF4">#B0512C</span>
+        </div>
+        <div style="font:600 12px var(--sans); margin-top:7px">주기</div>
+        <div style="font-size:11.5px; color:var(--ink2); line-height:1.45">지도 번호·오답</div>
+      </div>
+      <div>
+        <div style="height:64px; background:#DCD5C6; border:1px solid rgba(31,27,22,.18); display:flex; align-items:flex-end; padding:7px 9px">
+          <span style="font:500 10px var(--mono); letter-spacing:.08em; color:#1F1B16">#DCD5C6</span>
+        </div>
+        <div style="font:600 12px var(--sans); margin-top:7px">괘선</div>
+        <div style="font-size:11.5px; color:var(--ink2); line-height:1.45">경계선</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex; align-items:center; gap:11px; margin-bottom:14px">
+      <span style="font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--ink2)">활자</span>
+      <span style="flex-grow:1; height:1px; background:var(--rule2)"></span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:26px">
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:9px">GOWUN BATANG · 문제와 정답</div>
+        <div style="font:700 30px/1.3 var(--serif)">지도의 7번 지역</div>
+        <div style="font:400 19px/1.5 var(--serif); color:var(--ink2); margin-top:5px">순창군 · 담양군 · 보성군</div>
+        <div style="font-size:12px; color:var(--faint); margin-top:9px; line-height:1.5">교과서 본문의 결. 문제문·정답·점수에만.</div>
+      </div>
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:9px">IBM PLEX SANS KR · 본문과 조작</div>
+        <div style="font:600 17px/1.4 var(--sans)">고추장(지리적 표시제)의 본고장</div>
+        <div style="font:400 14.5px/1.55 var(--sans); color:var(--ink2); margin-top:5px">죽녹원(대나무숲 공원), 소쇄원(전통정원)</div>
+        <div style="font:500 13px var(--mono); color:var(--faint); margin-top:9px">01 / 20 · 1 : 25 · ENTER</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex; align-items:center; gap:11px; margin-bottom:14px">
+      <span style="font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--ink2)">부품</span>
+      <span style="flex-grow:1; height:1px; background:var(--rule2)"></span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px">
+
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:10px">범위 칩</div>
+        <div style="display:flex; flex-wrap:wrap; gap:7px">
+          <button style="min-height:44px; padding:0 15px; border:1.5px solid var(--water); border-radius:2px; background:var(--water-t); color:#1E4353; font:600 13.5px var(--sans); cursor:pointer">호남권<span style="font:500 11px var(--mono); color:#5C8296; margin-left:6px">25</span></button>
+          <button style="min-height:44px; padding:0 15px; border:1px solid var(--rule2); border-radius:2px; background:transparent; color:var(--ink2); font:500 13.5px var(--sans); cursor:pointer">반도<span style="font:500 11px var(--mono); color:var(--faint); margin-left:6px">11</span></button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:10px">지도 번호 · 진행 눈금</div>
+        <div style="display:flex; align-items:center; gap:12px">
+          <span style="flex:none; display:grid; place-items:center; width:38px; height:38px; border:2px solid var(--verm); border-radius:50%; font:500 18px var(--mono); color:var(--verm)">7</span>
+          <div style="flex-grow:1; display:flex; gap:2px; align-items:flex-end; height:9px">
+            <span style="flex-grow:1; height:5px; background:var(--ink)"></span><span style="flex-grow:1; height:5px; background:var(--ink)"></span><span style="flex-grow:1; height:5px; background:var(--ink)"></span><span style="flex-grow:1; height:9px; background:var(--verm)"></span><span style="flex-grow:1; height:5px; background:var(--rule)"></span><span style="flex-grow:1; height:5px; background:var(--rule)"></span><span style="flex-grow:1; height:5px; background:var(--rule)"></span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:10px">서답형 빈칸</div>
+        <div style="border-bottom:2px solid var(--ink); padding:4px 2px 8px">
+          <span style="font:700 21px/1.3 var(--serif)">순창</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:10px">보기 · 정답</div>
+        <button style="display:flex; gap:11px; align-items:center; text-align:left; width:100%; min-height:52px; padding:11px 12px; border:1.5px solid var(--moss); border-radius:2px; background:var(--moss-t); cursor:pointer">
+          <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--moss); background:var(--moss); color:#FCFAF4; border-radius:50%; font:500 12px var(--mono)">1</span>
+          <span style="flex-grow:1; font:400 14px/1.45 var(--sans)">죽녹원, 소쇄원</span>
+        </button>
+      </div>
+
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:10px">보기 · 오답</div>
+        <button style="display:flex; gap:11px; align-items:center; text-align:left; width:100%; min-height:52px; padding:11px 12px; border:1.5px solid var(--verm); border-radius:2px; background:var(--verm-t); cursor:pointer">
+          <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--verm); background:var(--verm); color:#FCFAF4; border-radius:50%; font:500 12px var(--mono)">2</span>
+          <span style="flex-grow:1; font:400 14px/1.45 var(--sans)">국내 최대 녹차 생산지</span>
+          <span style="flex:none; font:500 11px var(--mono); color:var(--faint)">보성군</span>
+        </button>
+      </div>
+
+      <div>
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint); margin-bottom:10px">주요 동작</div>
+        <button style="width:100%; min-height:52px; border:0; border-radius:2px; background:var(--water); color:#FCFAF4; font:700 16px var(--sans); cursor:pointer">시작하기</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

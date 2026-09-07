@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+  <style>
+    :root{
+      --paper:#F5F1E8; --card:#FCFAF4; --ink:#1F1B16; --ink2:#5C554A; --faint:#8A8272;
+      --rule:#DCD5C6; --rule2:#C9C1B0;
+      --water:#33596B; --water-t:#E7EEF1;
+      --moss:#4A6E44;  --moss-t:#EAF0E7;
+      --verm:#B0512C;  --verm-t:#F7EAE3;
+      --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+      --serif:'Gowun Batang','Nanum Myeongjo',serif;
+      --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    body{ margin:0; background:var(--paper); color:var(--ink);
+          font-family:var(--sans); font-size:14px; line-height:1.55;
+          -webkit-font-smoothing:antialiased; }
+    body::after{ content:''; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:99;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    a{ color:var(--water); text-decoration-thickness:1px; text-underline-offset:3px; }
+    a:hover{ color:var(--verm); }
+    button{ font-family:inherit; }
+  </style>
+</helmet>
+<div style="min-height:100%; background:var(--paper); display:flex; flex-direction:column; gap:16px; padding:22px 20px 26px">
+  <div>
+    <div style="font:500 10px/1 var(--mono); letter-spacing:.2em; color:#5C554A; margin-bottom:8px">DIRECTION B</div>
+    <h2 style="margin:0 0 5px; font:700 20px/1.25 var(--serif)">야간 자습</h2>
+    <p style="margin:0; font-size:12.5px; line-height:1.5; color:var(--ink2)">어두운 바탕에 지도를 반전해 올립니다. 밤에 눈이 덜 피로하고 지도 선이 또렷하지만, 흑백 스캔본을 반전하면 원본과 달라 보입니다.</p>
+  </div>
+  <div style="flex-grow:1; background:#1A1D21; border:1px solid var(--rule2); padding:16px; display:flex; flex-direction:column; gap:13px">
+    <div style="display:flex; gap:3px">
+      <span style="flex-grow:1; height:3px; background:#E8A33D"></span><span style="flex-grow:1; height:3px; background:#E8A33D"></span><span style="flex-grow:1; height:3px; background:#3A4048"></span><span style="flex-grow:1; height:3px; background:#3A4048"></span><span style="flex-grow:1; height:3px; background:#3A4048"></span>
+    </div>
+    <div style="height:120px; background:#22262B; border:1px dashed #454C55; display:grid; place-items:center">
+      <span style="font:500 11px var(--mono); color:#6C757F; letter-spacing:.14em">MAP (INVERTED)</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px">
+      <span style="flex:none; width:30px; height:30px; border:2px solid #E8A33D; border-radius:50%"></span>
+      <span style="flex-grow:1; height:13px; background:#3A4048"></span>
+    </div>
+    <div style="height:2px; background:#E8A33D; margin-top:4px"></div>
+    <div style="display:flex; gap:7px; margin-top:auto">
+      <span style="flex-grow:1; height:42px; border:1px solid #454C55"></span>
+      <span style="flex-grow:2; height:42px; background:#E8A33D"></span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

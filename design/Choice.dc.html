@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+  <style>
+    :root{
+      --paper:#F5F1E8; --card:#FCFAF4; --ink:#1F1B16; --ink2:#5C554A; --faint:#8A8272;
+      --rule:#DCD5C6; --rule2:#C9C1B0;
+      --water:#33596B; --water-t:#E7EEF1;
+      --moss:#4A6E44;  --moss-t:#EAF0E7;
+      --verm:#B0512C;  --verm-t:#F7EAE3;
+      --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+      --serif:'Gowun Batang','Nanum Myeongjo',serif;
+      --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    body{ margin:0; background:var(--paper); color:var(--ink);
+          font-family:var(--sans); font-size:14px; line-height:1.55;
+          -webkit-font-smoothing:antialiased; }
+    body::after{ content:''; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:99;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    a{ color:var(--water); text-decoration-thickness:1px; text-underline-offset:3px; }
+    a:hover{ color:var(--verm); }
+    button{ font-family:inherit; }
+  </style>
+</helmet>
+<div style="padding:24px 22px 30px; display:flex; flex-direction:column; gap:22px">
+  <div style="display:flex; flex-direction:column; gap:9px">
+    <div style="display:flex; gap:2px; align-items:flex-end; height:9px"><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--ink); align-self:flex-end"></span><span style="flex-grow:1; height:9px; background:var(--verm); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span><span style="flex-grow:1; height:5px; background:var(--rule); align-self:flex-end"></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:baseline">
+      <span style="font:500 12px var(--mono); letter-spacing:.08em; color:var(--ink2)">12 / 20</span>
+      <span style="font:500 12px var(--mono); letter-spacing:.08em; color:var(--faint)">정답 <span style="color:var(--moss)">9</span></span>
+    </div>
+  </div>
+  <div>
+    <div style="display:flex; align-items:center; gap:9px; margin-bottom:14px">
+      <span style="font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--ink2)">호남권</span>
+      <span style="flex-grow:1; height:1px; background:var(--rule2)"></span>
+      <span style="font:500 11px var(--mono); color:var(--faint)">17번</span>
+    </div>
+    <h2 style="margin:0; font:700 22px/1.45 var(--serif); letter-spacing:-.01em"><span style="box-shadow:inset 0 -9px 0 var(--verm-t)">담양군</span>에 대한 설명으로<br>옳은 것은?</h2>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:8px">
+    <button style="display:flex; gap:11px; align-items:flex-start; text-align:left; width:100%; min-height:56px; padding:13px 13px; border:1.5px solid var(--moss); border-radius:2px; background:var(--moss-t); cursor:pointer">
+      <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--moss); background:var(--moss); color:#FCFAF4; border-radius:50%; font:500 12px var(--mono)">1</span>
+      <span style="flex-grow:1; font:400 14.5px/1.5 var(--sans); color:var(--ink)">죽녹원(대나무숲 공원), 소쇄원(전통정원)</span>
+      <span style="flex:none; font:600 11px var(--sans); color:var(--moss); letter-spacing:.06em; align-self:center">정답</span>
+    </button>
+    <button style="display:flex; gap:11px; align-items:flex-start; text-align:left; width:100%; min-height:56px; padding:13px 13px; border:1.5px solid var(--verm); border-radius:2px; background:var(--verm-t); cursor:pointer">
+      <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--verm); background:var(--verm); color:#FCFAF4; border-radius:50%; font:500 12px var(--mono)">2</span>
+      <span style="flex-grow:1; font:400 14.5px/1.5 var(--sans); color:var(--ink)">국내 최대 녹차 생산지, 다향제</span>
+      <span style="flex:none; font:600 11px var(--sans); color:var(--verm); letter-spacing:.06em; align-self:center">내 답</span>
+    </button>
+    <button style="display:flex; gap:11px; align-items:flex-start; text-align:left; width:100%; min-height:56px; padding:13px 13px; border:1.5px solid var(--rule2); border-radius:2px; background:transparent; cursor:pointer">
+      <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--rule2); background:transparent; color:var(--ink2); border-radius:50%; font:500 12px var(--mono)">3</span>
+      <span style="flex-grow:1; font:400 14.5px/1.5 var(--sans); color:var(--ink)">나비 축제(친환경적 생태관광 축제)</span>
+      <span style="flex:none; font:500 11px var(--mono); color:var(--faint); align-self:center">함평군</span>
+    </button>
+    <button style="display:flex; gap:11px; align-items:flex-start; text-align:left; width:100%; min-height:56px; padding:13px 13px; border:1.5px solid var(--rule2); border-radius:2px; background:transparent; cursor:pointer">
+      <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--rule2); background:transparent; color:var(--ink2); border-radius:50%; font:500 12px var(--mono)">4</span>
+      <span style="flex-grow:1; font:400 14.5px/1.5 var(--sans); color:var(--ink)">세계문화유산(고인돌), 호남 최대 탄전</span>
+      <span style="flex:none; font:500 11px var(--mono); color:var(--faint); align-self:center">화순군</span>
+    </button>
+    <button style="display:flex; gap:11px; align-items:flex-start; text-align:left; width:100%; min-height:56px; padding:13px 13px; border:1.5px solid var(--rule2); border-radius:2px; background:transparent; cursor:pointer">
+      <span style="flex:none; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid var(--rule2); background:transparent; color:var(--ink2); border-radius:50%; font:500 12px var(--mono)">5</span>
+      <span style="flex-grow:1; font:400 14.5px/1.5 var(--sans); color:var(--ink)">다산초당(정약용), 고려청자 요지</span>
+      <span style="flex:none; font:500 11px var(--mono); color:var(--faint); align-self:center">강진군</span>
+    </button>
+  </div>
+
+  <div style="border-left:2px solid var(--ink); padding:2px 0 2px 14px">
+    <div style="font:500 10px/1 var(--mono); letter-spacing:.18em; color:var(--faint); margin-bottom:9px">담양군 · 전체 특징</div>
+    <div style="display:flex; flex-direction:column; gap:6px">
+      <div style="font-size:14px; line-height:1.5">죽세공품</div>
+      <div style="font-size:14px; line-height:1.5">죽녹원(대나무숲 공원), 소쇄원(전통정원)</div>
+      <div style="font-size:14px; line-height:1.5">대나무 축제</div>
+      <div style="font-size:14px; line-height:1.5">창평 슬로시티(아시아 최초 지정)</div>
+    </div>
+  </div>
+
+  <button style="min-height:56px; border:0; border-radius:2px; background:var(--ink); color:var(--card); font:700 16px var(--sans); cursor:pointer">다음 문제<span style="font:500 12px var(--mono); opacity:.6; margin-left:9px">ENTER</span></button>
+</div>
+</x-dc>
+</body>
+</html>

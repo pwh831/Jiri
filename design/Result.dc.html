@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+  <style>
+    :root{
+      --paper:#F5F1E8; --card:#FCFAF4; --ink:#1F1B16; --ink2:#5C554A; --faint:#8A8272;
+      --rule:#DCD5C6; --rule2:#C9C1B0;
+      --water:#33596B; --water-t:#E7EEF1;
+      --moss:#4A6E44;  --moss-t:#EAF0E7;
+      --verm:#B0512C;  --verm-t:#F7EAE3;
+      --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+      --serif:'Gowun Batang','Nanum Myeongjo',serif;
+      --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    body{ margin:0; background:var(--paper); color:var(--ink);
+          font-family:var(--sans); font-size:14px; line-height:1.55;
+          -webkit-font-smoothing:antialiased; }
+    body::after{ content:''; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:99;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    a{ color:var(--water); text-decoration-thickness:1px; text-underline-offset:3px; }
+    a:hover{ color:var(--verm); }
+    button{ font-family:inherit; }
+  </style>
+</helmet>
+<div style="padding:24px 22px 30px; display:flex; flex-direction:column; gap:22px">
+  <div>
+    <div style="font:500 11px/1 var(--mono); letter-spacing:.22em; color:var(--verm); margin-bottom:10px">SESSION COMPLETE</div>
+    <div style="border-top:2px solid var(--ink); border-bottom:1px solid var(--ink); padding:22px 0 20px; display:flex; align-items:flex-end; justify-content:space-between">
+      <div style="display:flex; align-items:baseline; gap:4px">
+        <span style="font:700 56px/1 var(--serif); letter-spacing:-.02em">16</span>
+        <span style="font:400 24px/1 var(--serif); color:var(--faint)">/ 20</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font:500 10px var(--mono); letter-spacing:.16em; color:var(--faint)">ACCURACY</div>
+        <div style="font:700 26px/1.2 var(--serif); color:var(--moss); margin-top:3px">80%</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex; align-items:center; gap:11px; margin-bottom:6px">
+      <span style="font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--ink2)">범위별</span>
+      <span style="flex-grow:1; height:1px; background:var(--rule2)"></span>
+    </div>
+    <div>
+      <div style="display:flex; align-items:baseline; gap:8px; padding:9px 0; border-bottom:1px dotted var(--rule2)">
+        <span style="font-size:14px">호남권</span>
+        <span style="flex-grow:1; border-bottom:1px dotted var(--rule2); transform:translateY(-3px)"></span>
+        <span style="font:500 13px var(--mono); color:var(--ink2)">9 / 11</span>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:8px; padding:9px 0; border-bottom:1px dotted var(--rule2)">
+        <span style="font-size:14px">강원권</span>
+        <span style="flex-grow:1; border-bottom:1px dotted var(--rule2); transform:translateY(-3px)"></span>
+        <span style="font:500 13px var(--mono); color:var(--moss)">4 / 4</span>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:8px; padding:9px 0; border-bottom:1px dotted var(--rule2)">
+        <span style="font-size:14px">반도</span>
+        <span style="flex-grow:1; border-bottom:1px dotted var(--rule2); transform:translateY(-3px)"></span>
+        <span style="font:500 13px var(--mono); color:var(--ink2)">3 / 5</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex; align-items:center; gap:11px; margin-bottom:6px">
+      <span style="font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--verm)">틀린 문제</span>
+      <span style="flex-grow:1; height:1px; background:var(--rule2)"></span>
+      <span style="font:500 11px var(--mono); color:var(--verm)">4</span>
+    </div>
+    <div>
+      <div style="display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--rule)">
+        <div style="flex-grow:1">
+          <div style="font:700 16px/1.3 var(--serif)">보성군</div>
+          <div style="font-size:12.5px; color:var(--ink2); margin-top:3px">국내 최대 녹차 생산지, 다향제</div>
+        </div>
+        <div style="flex:none; text-align:right">
+          <div style="font:500 10px var(--mono); letter-spacing:.12em; color:var(--faint)">MINE</div>
+          <div style="font-size:13px; color:var(--verm); margin-top:3px">벌교</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--rule)">
+        <div style="flex-grow:1">
+          <div style="font:700 16px/1.3 var(--serif)">이베리아반도</div>
+          <div style="font-size:12.5px; color:var(--ink2); margin-top:3px">피레네 산맥으로 유럽 본토와 연결</div>
+        </div>
+        <div style="flex:none; text-align:right">
+          <div style="font:500 10px var(--mono); letter-spacing:.12em; color:var(--faint)">MINE</div>
+          <div style="font-size:13px; color:var(--verm); margin-top:3px">발칸반도</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--rule)">
+        <div style="flex-grow:1">
+          <div style="font:700 16px/1.3 var(--serif)">음성군</div>
+          <div style="font-size:12.5px; color:var(--ink2); margin-top:3px">충북 혁신도시(진천군과 걸쳐 조성)</div>
+        </div>
+        <div style="flex:none; text-align:right">
+          <div style="font:500 10px var(--mono); letter-spacing:.12em; color:var(--faint)">MINE</div>
+          <div style="font-size:13px; color:var(--verm); margin-top:3px">진천</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:9px">
+    <button style="min-height:56px; border:0; border-radius:2px; background:var(--verm); color:#FCFAF4; font:700 16px var(--sans); cursor:pointer">틀린 것만 다시 풀기<span style="font:500 12px var(--mono); opacity:.75; margin-left:9px">4</span></button>
+    <button style="min-height:48px; border:1px solid var(--rule2); border-radius:2px; background:transparent; color:var(--ink2); font:500 14px var(--sans); cursor:pointer">처음으로</button>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

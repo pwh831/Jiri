@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+  <style>
+    :root{
+      --paper:#F5F1E8; --card:#FCFAF4; --ink:#1F1B16; --ink2:#5C554A; --faint:#8A8272;
+      --rule:#DCD5C6; --rule2:#C9C1B0;
+      --water:#33596B; --water-t:#E7EEF1;
+      --moss:#4A6E44;  --moss-t:#EAF0E7;
+      --verm:#B0512C;  --verm-t:#F7EAE3;
+      --sans:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+      --serif:'Gowun Batang','Nanum Myeongjo',serif;
+      --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    body{ margin:0; background:var(--paper); color:var(--ink);
+          font-family:var(--sans); font-size:14px; line-height:1.55;
+          -webkit-font-smoothing:antialiased; }
+    body::after{ content:''; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:99;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    a{ color:var(--water); text-decoration-thickness:1px; text-underline-offset:3px; }
+    a:hover{ color:var(--verm); }
+    button{ font-family:inherit; }
+  </style>
+</helmet>
+<div style="min-height:100%; background:#FFFFFF; display:flex; flex-direction:column; gap:16px; padding:22px 20px 26px">
+  <div>
+    <div style="font:500 10px/1 var(--mono); letter-spacing:.2em; color:#B0512C; margin-bottom:8px">DIRECTION C</div>
+    <h2 style="margin:0 0 5px; font:700 20px/1.25 var(--serif)">낱장 카드</h2>
+    <p style="margin:0; font-size:12.5px; line-height:1.5; color:var(--ink2)">권역마다 색을 주고 큼직한 둥근 카드로 넘깁니다. 진도감이 좋지만 색이 늘어 지도의 흑백과 부딪히고, 화면당 담기는 정보가 줄어듭니다.</p>
+  </div>
+  <div style="flex-grow:1; display:flex; flex-direction:column; gap:11px">
+    <div style="display:flex; gap:7px">
+      <span style="flex-grow:1; height:36px; border-radius:18px; background:#E9E4F5"></span>
+      <span style="flex-grow:1; height:36px; border-radius:18px; background:#F3F1E9"></span>
+      <span style="flex-grow:1; height:36px; border-radius:18px; background:#F3F1E9"></span>
+    </div>
+    <div style="flex-grow:1; border-radius:20px; background:#F7F5FB; border:1px solid #DED8EE; padding:18px; display:flex; flex-direction:column; gap:13px">
+      <span style="width:74px; height:22px; border-radius:11px; background:#6B4FBB"></span>
+      <div style="height:110px; border-radius:14px; background:#FFFFFF; border:1px dashed #C9C1E0; display:grid; place-items:center">
+        <span style="font:500 11px var(--mono); color:#9A92B5; letter-spacing:.14em">MAP</span>
+      </div>
+      <span style="width:70%; height:17px; border-radius:9px; background:#DED8EE"></span>
+      <span style="width:100%; height:46px; border-radius:14px; background:#FFFFFF; border:1px solid #DED8EE"></span>
+    </div>
+    <span style="height:52px; border-radius:26px; background:#6B4FBB"></span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
