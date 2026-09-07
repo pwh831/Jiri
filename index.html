@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<title>지역이해 암기 퀴즈</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --line:#e2e5ea; --ink:#1b1f24; --muted:#6b7280;
+    --accent:#2563eb; --accent-soft:#eff4ff; --ok:#0f9d58; --ok-soft:#e8f6ee;
+    --no:#d93025; --no-soft:#fdecea; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",
+       "Noto Sans KR",sans-serif; line-height:1.55; -webkit-text-size-adjust:100%}
+  .wrap{max-width:820px;margin:0 auto;padding:16px 14px 60px}
+  h1{font-size:19px;margin:4px 0 2px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+        padding:16px;margin-bottom:14px}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;
+        font-size:13.5px;cursor:pointer;user-select:none;color:var(--ink)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip small{opacity:.7;font-size:11px;margin-left:3px}
+  button.primary{width:100%;padding:14px;font-size:16px;font-weight:700;border:0;
+        border-radius:var(--radius);background:var(--accent);color:#fff;cursor:pointer}
+  button.primary:disabled{background:#9db4e8;cursor:not-allowed}
+  button.ghost{padding:10px 14px;font-size:14px;border:1px solid var(--line);background:#fff;
+        border-radius:9px;cursor:pointer;color:var(--ink)}
+  .bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:10px}
+  .bar > i{display:block;height:100%;background:var(--accent);transition:width .25s}
+  .meta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:8px}
+  .mapbox{position:relative;border:1px solid var(--line);border-radius:10px;overflow:auto;
+          background:#fff;max-height:52vh;margin-bottom:12px}
+  .mapbox img{display:block;width:100%;min-width:340px;transition:width .15s}
+  .marker{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+          border:3px solid var(--no);box-shadow:0 0 0 3px rgba(217,48,37,.22);
+          animation:pulse 1.3s infinite;pointer-events:none}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(217,48,37,.22)}50%{box-shadow:0 0 0 9px rgba(217,48,37,0)}}
+  .zoomrow{display:flex;gap:6px;justify-content:flex-end;margin:-6px 0 10px}
+  .zoomrow button{padding:4px 11px;font-size:13px;border:1px solid var(--line);background:#fff;
+          border-radius:7px;cursor:pointer}
+  .q{font-size:17px;font-weight:700;margin:2px 0 12px}
+  .q em{font-style:normal;color:var(--accent)}
+  input[type=text]{width:100%;padding:13px;font-size:17px;border:1.5px solid var(--line);
+          border-radius:10px;outline:none;background:#fff;color:var(--ink)}
+  input[type=text]:focus{border-color:var(--accent)}
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opt{display:flex;gap:9px;align-items:flex-start;text-align:left;padding:12px;
+       border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-size:14.5px;
+       line-height:1.5;color:var(--ink)}
+  .opt b{flex:none;width:21px;height:21px;border-radius:50%;background:var(--accent-soft);
+         color:var(--accent);font-size:12px;display:grid;place-items:center;margin-top:1px}
+  .opt.correct{border-color:var(--ok);background:var(--ok-soft)}
+  .opt.wrong{border-color:var(--no);background:var(--no-soft)}
+  .opt:disabled{cursor:default}
+  .fb{margin-top:12px;padding:13px;border-radius:10px;font-size:14px}
+  .fb.ok{background:var(--ok-soft);border:1px solid #bfe3cd}
+  .fb.no{background:var(--no-soft);border:1px solid #f3c6c2}
+  .fb h3{margin:0 0 6px;font-size:15px}
+  .fb ul{margin:6px 0 0;padding-left:18px}
+  .fb li{margin:2px 0}
+  .row{display:flex;gap:8px;margin-top:12px}
+  .row > *{flex:1}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  td,th{border-bottom:1px solid var(--line);padding:7px 4px;text-align:left;vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  .tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:5px;
+       background:var(--accent-soft);color:var(--accent);margin-left:6px}
+  .hint{font-size:13px;color:var(--muted);margin-top:9px}
+  .big{font-size:30px;font-weight:800;text-align:center;margin:6px 0}
+  .center{text-align:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026 지역이해 암기 퀴즈</h1>
+  <div class="sub">지도 → 지역명 서답형 · 지역 특징 5지선다</div>
+  <div id="app"></div>
+</div>
+
+<script src="data/items.js"></script>
+<script>
+/* ---------- 저장소 ---------- */
+const LS = "jiri-quiz-v1";
+let store = {};
+try { store = JSON.parse(localStorage.getItem(LS) || "{}"); } catch(e){ store = {}; }
+function stat(id){ return store[id] || (store[id] = {right:0, wrong:0, streak:0, last:0}); }
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(store)); }catch(e){} }
+
+/* ---------- 정답 정규화 ---------- */
+const SUFFIX = ["특별자치도","특별자치시","광역시","특별시","자치도","반도","해협","제도","군도",
+                "산맥","고원","분지","평야","도시","시","군","구","도","강","해","호수","호","만","섬","양"];
+function norm(s){
+  s = (s||"").toLowerCase().replace(/\(.*?\)/g,"").replace(/[\s·・,.\-_'"]/g,"");
+  return s;
+}
+function stripSuffix(s){
+  for (const suf of SUFFIX){
+    if (s.length > suf.length && s.endsWith(suf)) return s.slice(0, -suf.length);
+  }
+  return s;
+}
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=[...Array(n+1).keys()], cur=new Array(n+1);
+  for(let i=1;i<=m;i++){ cur[0]=i;
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    [prev,cur]=[cur,prev];
+  }
+  return prev[n];
+}
+/* 반환: "exact" | "typo" | null */
+function judge(input, item){
+  const got = norm(input);
+  if (!got) return null;
+  const cands = [item.name, ...(item.aliases||[])].map(norm);
+  const all = [...cands, ...cands.map(stripSuffix)];
+  if (all.includes(got) || all.includes(stripSuffix(got))) return "exact";
+  for (const c of all){
+    if (c.length >= 3 && lev(got, c) <= 1) return "typo";
+    if (stripSuffix(got).length >= 3 && lev(stripSuffix(got), stripSuffix(c)) <= 1) return "typo";
+  }
+  return null;
+}
+
+/* ---------- 카테고리 정의 ---------- */
+const CATS = [
+  {key:"sido",        label:"17개 시·도",  scope:"korea"},
+  {key:"sudogwon",    label:"수도권",      scope:"korea"},
+  {key:"chungcheong", label:"충청권",      scope:"korea"},
+  {key:"gangwon",     label:"강원권",      scope:"korea"},
+  {key:"honam",       label:"호남권",      scope:"korea"},
+  {key:"ocean",       label:"오대양",      scope:"world"},
+  {key:"peninsula",   label:"반도",        scope:"world"},
+  {key:"island",      label:"섬",          scope:"world"},
+  {key:"sea",         label:"바다·만",     scope:"world"},
+  {key:"lake",        label:"호수",        scope:"world"},
+  {key:"strait",      label:"해협",        scope:"world"}
+];
+const CATLABEL = Object.fromEntries(CATS.map(c=>[c.key,c.label]));
+const KIND = {peninsula:"반도", island:"섬", sea:"바다", lake:"호수", strait:"해협", ocean:"바다",
+              sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역"};
+
+/* ---------- 세션 상태 ---------- */
+let cfg = { cats: CATS.map(c=>c.key), types:"both", count:20, order:"weak" };
+let quiz = null;
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]];} return a; };
+
+/* ---------- 홈 ---------- */
+function home(){
+  const done = Object.keys(store).length;
+  const mastered = Object.values(store).filter(s=>s.streak>=3).length;
+  app.innerHTML = `
+  <div class="card">
+    <h2>학습 범위</h2>
+    <div class="chips" id="cats">
+      ${CATS.map(c=>{
+        const n = ITEMS.filter(i=>i.category===c.key).length;
+        return `<div class="chip ${cfg.cats.includes(c.key)?"on":""}" data-c="${c.key}">${c.label}<small>${n}</small></div>`;
+      }).join("")}
+    </div>
+    <div class="row">
+      <button class="ghost" id="allKr">한국만</button>
+      <button class="ghost" id="allWorld">세계만</button>
+      <button class="ghost" id="allAll">전체</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>문제 유형</h2>
+    <div class="chips" id="types">
+      <div class="chip ${cfg.types==="both"?"on":""}" data-t="both">혼합</div>
+      <div class="chip ${cfg.types==="name"?"on":""}" data-t="name">서답형만 (지도→이름)</div>
+      <div class="chip ${cfg.types==="feat"?"on":""}" data-t="feat">5지선다만 (이름→특징)</div>
+    </div>
+    <h2 style="margin-top:14px">문항 수</h2>
+    <div class="chips" id="counts">
+      ${[10,20,30,999].map(n=>`<div class="chip ${cfg.count===n?"on":""}" data-n="${n}">${n===999?"전체":n}</div>`).join("")}
+    </div>
+    <h2 style="margin-top:14px">출제 순서</h2>
+    <div class="chips" id="orders">
+      <div class="chip ${cfg.order==="weak"?"on":""}" data-o="weak">오답 우선</div>
+      <div class="chip ${cfg.order==="rand"?"on":""}" data-o="rand">랜덤</div>
+    </div>
+  </div>
+
+  <button class="primary" id="start">시작하기</button>
+
+  <div class="card" style="margin-top:14px">
+    <h2>진도</h2>
+    <div style="font-size:14px">학습한 항목 <b>${done}</b> / ${ITEMS.length} · 숙달(연속 3회 정답) <b>${mastered}</b></div>
+    <div class="row">
+      <button class="ghost" id="wrongOnly">오답 노트 풀기</button>
+      <button class="ghost" id="reset">기록 초기화</button>
+    </div>
+  </div>`;
+
+  document.getElementById("cats").onclick = e=>{
+    const el = e.target.closest(".chip"); if(!el) return;
+    const c = el.dataset.c;
+    cfg.cats = cfg.cats.includes(c) ? cfg.cats.filter(x=>x!==c) : [...cfg.cats, c];
+    home();
+  };
+  const setCats = list => { cfg.cats = list; home(); };
+  document.getElementById("allKr").onclick    = ()=>setCats(CATS.filter(c=>c.scope==="korea").map(c=>c.key));
+  document.getElementById("allWorld").onclick = ()=>setCats(CATS.filter(c=>c.scope==="world").map(c=>c.key));
+  document.getElementById("allAll").onclick   = ()=>setCats(CATS.map(c=>c.key));
+  document.getElementById("types").onclick  = e=>{ const el=e.target.closest(".chip"); if(el){cfg.types=el.dataset.t; home();} };
+  document.getElementById("counts").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.count=+el.dataset.n; home();} };
+  document.getElementById("orders").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.order=el.dataset.o; home();} };
+  document.getElementById("start").onclick  = ()=>begin(pool());
+  document.getElementById("wrongOnly").onclick = ()=>{
+    const p = ITEMS.filter(i=>{ const s=store[i.id]; return s && s.wrong>0 && s.streak<3; });
+    if(!p.length){ alert("오답 노트가 비어 있습니다."); return; }
+    begin(p, true);
+  };
+  document.getElementById("reset").onclick = ()=>{
+    if(confirm("학습 기록을 모두 지웁니다. 계속할까요?")){ store={}; save(); home(); }
+  };
+}
+
+function pool(){
+  let p = ITEMS.filter(i=>cfg.cats.includes(i.category));
+  if(!p.length) return p;
+  if(cfg.order==="weak"){
+    p = p.map(i=>{
+      const s = store[i.id] || {right:0,wrong:0,streak:0,last:0};
+      const w = 1 + s.wrong*3 - Math.min(s.streak,3)*0.8 + (s.right===0?1.5:0);
+      return {i, k: Math.random() / Math.max(w, 0.15)};
+    }).sort((a,b)=>a.k-b.k).map(x=>x.i);
+  } else shuffle(p);
+  return p;
+}
+
+function begin(list, isReview){
+  if(!list.length){ alert("선택한 범위에 문제가 없습니다."); return; }
+  const n = Math.min(cfg.count, list.length);
+  const picked = list.slice(0, n);
+  quiz = { qs: picked.map(makeQ), at:0, right:0, log:[], review:!!isReview };
+  render();
+}
+
+function makeQ(item){
+  let type;
+  if (cfg.types==="name") type = "name";
+  else if (cfg.types==="feat") type = "feat";
+  else type = Math.random() < 0.5 ? "name" : "feat";
+  if (type==="feat" && !(item.features||[]).length) type = "name";
+  return type==="name" ? {type, item} : {type, item, ...buildChoices(item)};
+}
+
+/* 5지선다 보기 생성: 같은 카테고리 우선 → 같은 scope → 전체 */
+function buildChoices(item){
+  const mine = new Set(item.features.map(norm));
+  const answer = item.features[Math.random()*item.features.length|0];
+  const self = norm(item.name);
+  const take = arr => arr.filter(i=>i.id!==item.id && norm(i.name)!==self)
+                        .flatMap(i=>(i.features||[]).map(f=>({f, from:i.name})))
+                        .filter(o=>!mine.has(norm(o.f)));
+  let pool = shuffle(take(ITEMS.filter(i=>i.category===item.category)));
+  const seen = new Set([norm(answer)]);
+  const picks = [];
+  const push = arr => { for(const o of arr){ const k=norm(o.f);
+      if(!seen.has(k)){ seen.add(k); picks.push(o); if(picks.length>=4) return; } } };
+  push(pool);
+  if(picks.length<4) push(shuffle(take(ITEMS.filter(i=>i.scope===item.scope))));
+  if(picks.length<4) push(shuffle(take(ITEMS)));
+  const opts = shuffle([{f:answer, from:item.name, ok:true}, ...picks.map(o=>({...o, ok:false}))]);
+  return {opts};
+}
+
+/* ---------- 문제 화면 ---------- */
+function mapHTML(item, zoom){
+  const m = MAPS[item.map];
+  const marker = item.marker
+    ? `<div class="marker" style="left:${item.marker.x}%;top:${item.marker.y}%"></div>` : "";
+  return `
+    <div class="mapbox"><div style="position:relative;width:${zoom}%">
+      <img src="${m.image}" alt="${esc(m.title)}">${marker}
+    </div></div>
+    <div class="zoomrow">
+      <button data-z="-">축소</button><button data-z="+">확대</button><button data-z="0">원래대로</button>
+    </div>`;
+}
+
+let zoom = 100;
+function render(){
+  const q = quiz.qs[quiz.at];
+  const it = q.item;
+  const pct = Math.round(quiz.at / quiz.qs.length * 100);
+  const head = `
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="meta"><span>${quiz.at+1} / ${quiz.qs.length}${quiz.review?" · 오답 노트":""}</span>
+      <span>정답 ${quiz.right}</span></div>`;
+
+  if (q.type === "name"){
+    const kind = KIND[it.category] || "지역";
+    const label = MAPS[it.map].labeled
+      ? `지도의 <em>${it.num}번</em> ${kind}의 이름은?`
+      : `지도에 <em>표시된</em> ${kind}의 이름은?`;
+    app.innerHTML = head + `<div class="card">
+      ${mapHTML(it, zoom)}
+      <div class="q">${label}</div>
+      <input type="text" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="이름을 입력하고 Enter">
+      <div class="hint">${esc(MAPS[it.map].title)} · 접미어(시/군/도/강/섬 등)는 있어도 없어도 정답</div>
+      <div class="row"><button class="ghost" id="skip">모르겠음</button>
+        <button class="primary" id="sub" style="flex:2">제출</button></div>
+    </div>`;
+    const input = document.getElementById("ans");
+    input.focus();
+    const submit = ()=>answerName(input.value);
+    input.onkeydown = e => { if(e.key==="Enter") submit(); };
+    document.getElementById("sub").onclick = submit;
+    document.getElementById("skip").onclick = ()=>answerName("");
+  } else {
+    app.innerHTML = head + `<div class="card">
+      <div class="q"><em>${esc(it.name)}</em>에 대한 설명으로 옳은 것은?</div>
+      <div class="opts" id="opts">
+        ${q.opts.map((o,i)=>`<button class="opt" data-i="${i}"><b>${i+1}</b><span>${esc(o.f)}</span></button>`).join("")}
+      </div>
+      <div class="hint">${CATLABEL[it.category]}${MAPS[it.map].labeled?` · 지도 ${it.num}번`:""}</div>
+    </div>`;
+    document.getElementById("opts").onclick = e=>{
+      const b = e.target.closest(".opt"); if(b) answerFeat(+b.dataset.i);
+    };
+    document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) answerFeat(+e.key-1); };
+  }
+  bindZoom();
+}
+
+function bindZoom(){
+  const row = document.querySelector(".zoomrow"); if(!row) return;
+  row.onclick = e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    zoom = b.dataset.z==="+" ? Math.min(zoom+50, 400) : b.dataset.z==="-" ? Math.max(zoom-50, 100) : 100;
+    const inner = document.querySelector(".mapbox > div");
+    if(inner) inner.style.width = zoom + "%";
+  };
+}
+
+function record(item, ok){
+  const s = stat(item.id);
+  if(ok){ s.right++; s.streak++; } else { s.wrong++; s.streak = 0; }
+  s.last = Date.now(); save();
+}
+
+function answerName(val){
+  const q = quiz.qs[quiz.at], it = q.item;
+  const verdict = judge(val, it);
+  const ok = verdict !== null;
+  if(ok) quiz.right++;
+  record(it, ok);
+  quiz.log.push({item:it, ok, mine: val || "(미입력)", type:"서답형"});
+  const fb = `<div class="fb ${ok?"ok":"no"}">
+      <h3>${ok ? (verdict==="typo" ? "정답 (오타 인정)" : "정답") : "오답"}</h3>
+      <div>정답 : <b>${esc(it.name)}</b>${it.aliases&&it.aliases.length?` <span class="tag">${esc(it.aliases.join(" / "))}</span>`:""}</div>
+      ${val ? `<div style="color:var(--muted);font-size:13px">내 답: ${esc(val)}</div>` : ""}
+      <ul>${it.features.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>
+    </div>`;
+  document.querySelector(".card").insertAdjacentHTML("beforeend", fb + nextBtn());
+  document.getElementById("ans").disabled = true;
+  document.getElementById("sub").disabled = true;
+  document.getElementById("skip").disabled = true;
+  wireNext();
+}
+
+function answerFeat(idx){
+  const q = quiz.qs[quiz.at], it = q.item;
+  if(!q.opts || q.opts[idx]===undefined || q.answered) return;
+  q.answered = true;
+  document.onkeydown = null;
+  const ok = q.opts[idx].ok;
+  if(ok) quiz.right++;
+  record(it, ok);
+  quiz.log.push({item:it, ok, mine:q.opts[idx].f, type:"5지선다"});
+  document.querySelectorAll(".opt").forEach((b,i)=>{
+    b.disabled = true;
+    if(q.opts[i].ok) b.classList.add("correct");
+    else if(i===idx) b.classList.add("wrong");
+    if(!q.opts[i].ok) b.insertAdjacentHTML("beforeend",
+      `<span style="margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap">${esc(q.opts[i].from)}</span>`);
+  });
+  const fb = `<div class="fb ${ok?"ok":"no"}">
+      <h3>${ok?"정답":"오답"}</h3>
+      <div><b>${esc(it.name)}</b>의 특징</div>
+      <ul>${it.features.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>
+    </div>`;
+  document.querySelector(".card").insertAdjacentHTML("beforeend", fb + nextBtn());
+  wireNext();
+}
+
+const nextBtn = () => `<button class="primary" id="next" style="margin-top:12px">
+    ${quiz.at+1 < quiz.qs.length ? "다음 문제 (Enter)" : "결과 보기"}</button>`;
+
+function wireNext(){
+  const b = document.getElementById("next");
+  b.focus();
+  b.onclick = ()=>{ quiz.at++; document.onkeydown=null; quiz.at<quiz.qs.length ? render() : result(); };
+  document.onkeydown = e=>{ if(e.key==="Enter"){ e.preventDefault(); b.click(); } };
+}
+
+/* ---------- 결과 ---------- */
+function result(){
+  document.onkeydown = null;
+  const wrong = quiz.log.filter(l=>!l.ok);
+  const rate = Math.round(quiz.right / quiz.qs.length * 100);
+  const byCat = {};
+  quiz.log.forEach(l=>{
+    const k = CATLABEL[l.item.category];
+    byCat[k] = byCat[k] || {n:0, r:0};
+    byCat[k].n++; if(l.ok) byCat[k].r++;
+  });
+  app.innerHTML = `
+  <div class="card">
+    <div class="big">${quiz.right} / ${quiz.qs.length}</div>
+    <div class="center">정답률 ${rate}%</div>
+  </div>
+  <div class="card">
+    <h2>범위별 정답률</h2>
+    <table><tbody>
+      ${Object.entries(byCat).map(([k,v])=>
+        `<tr><td>${k}</td><td style="text-align:right">${v.r}/${v.n}</td></tr>`).join("")}
+    </tbody></table>
+  </div>
+  ${wrong.length ? `<div class="card"><h2>틀린 문제 ${wrong.length}개</h2>
+    <table><thead><tr><th>정답</th><th>내 답</th><th>유형</th></tr></thead><tbody>
+    ${wrong.map(l=>`<tr><td><b>${esc(l.item.name)}</b><br>
+      <span style="color:var(--muted);font-size:12px">${esc(l.item.features[0]||"")}</span></td>
+      <td style="color:var(--no)">${esc(l.mine)}</td><td style="font-size:12px">${l.type}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="card center">모두 맞혔습니다.</div>`}
+  <div class="row">
+    ${wrong.length?`<button class="primary" id="again">틀린 것만 다시</button>`:""}
+    <button class="ghost" id="hm">처음으로</button>
+  </div>`;
+  if(wrong.length) document.getElementById("again").onclick = ()=>begin(wrong.map(l=>l.item), true);
+  document.getElementById("hm").onclick = home;
+}
+
+home();
+</script>
+</body>
+</html>
