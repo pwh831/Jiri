@@ -34,6 +34,40 @@ def load_features():
     return out
 FEATS = load_features()
 
+# ── 국내 행정 경계 (통계청 SGIS 2018 기반, tools/fetch_boundaries.py 로 생성) ──
+def load_geo(fn):
+    p = os.path.join(ROOT, "data", "geo", fn)
+    if not os.path.exists(p):
+        print(f"  경고: {fn} 없음 — tools/fetch_boundaries.py 를 먼저 실행하세요")
+        return []
+    g = json.load(open(p, encoding="utf-8"))
+    out = []
+    for f in g["features"]:
+        gm = f["geometry"]
+        polys = gm["coordinates"] if gm["type"] == "MultiPolygon" else [gm["coordinates"]]
+        out.append((f["properties"]["name"], polys))
+    return out
+SIDO, SIGUNGU = load_geo("sido.json"), load_geo("sigungu.json")
+
+def draw_admin(ax, m, view):
+    """시·군·구는 가는 선, 시·도는 굵은 선. 화면에 걸치는 것만 그린다."""
+    lat0, lat1, lon0, lon1, _, _ = VIEWS[view]
+    pad = 0.4
+    def visible(ring):
+        xs = [c[0] for c in ring]; ys = [c[1] for c in ring]
+        return not (max(xs) < lon0-pad or min(xs) > lon1+pad or
+                    max(ys) < lat0-pad or min(ys) > lat1+pad)
+    for src, lw, ec, fc, z in ((SIGUNGU, 0.42, "#A69C8B", LAND, 1),
+                               (SIDO,    1.00, "#4A443B", "none", 2)):
+        for _, polys in src:
+            for poly in polys:
+                ring = poly[0]
+                if len(ring) < 4 or not visible(ring):
+                    continue
+                xs, ys = m([c[0] for c in ring], [c[1] for c in ring])
+                ax.fill(xs, ys, facecolor=fc, edgecolor=ec, linewidth=lw,
+                        zorder=z, closed=True)
+
 # ── 페이지 정의 ──────────────────────────────────────────────
 # (지역키, 큰제목, 단원, 지도설정, 글자크기, 점크기)
 PAGES = [
@@ -63,14 +97,17 @@ def draw_base(ax, view):
                 llcrnrlat=lat0, urcrnrlat=lat1, llcrnrlon=lon0, urcrnrlon=lon1,
                 resolution=res, ax=ax)
     m.drawmapboundary(fill_color=SEA, linewidth=0.6, color=INK)
-    m.fillcontinents(color=LAND, lake_color=SEA)
-    m.drawcoastlines(linewidth=0.35, color=INK)
+    if view == "world":
+        m.fillcontinents(color=LAND, lake_color=SEA)
+        m.drawcoastlines(linewidth=0.35, color=INK)
     if view == "world":
         m.drawcountries(linewidth=0.25, color="#B9B2A4")
         m.drawparallels([-66.5,-23.5,0,23.5,66.5], linewidth=0.35, color="#C9C1B0",
                         dashes=[4,3], labels=[0,0,0,0])
     else:
-        m.drawrivers(linewidth=0.4, color="#9FBECB")
+        draw_admin(ax, m, view)                     # 시·군·구 + 시·도 경계
+        m.drawcoastlines(linewidth=0.40, color="#6E655A", zorder=3)
+        m.drawrivers(linewidth=0.4, color="#9FBECB", zorder=3)
         m.drawparallels([lat0+i*grid for i in range(int((lat1-lat0)/grid)+2)],
                         linewidth=0.25, color="#E2DDD0", dashes=[1,0], labels=[0,0,0,0])
         m.drawmeridians([lon0+i*grid for i in range(int((lon1-lon0)/grid)+2)],
@@ -187,7 +224,7 @@ def make_page(pdf, key, title, unit, view, fs, ms):
              ha="right", va="top")
     bottom_list(fig, items, 0.045, div - 0.030, 0.91, 0.042)
 
-    fig.text(0.045, 0.021, "지도: Natural Earth · GSHHG (public domain)  |  2026 지역이해 암기",
+    fig.text(0.045, 0.021, "지도: Natural Earth · GSHHG (public domain) · 국내 행정경계 통계청 SGIS  |  2026 지역이해 암기",
              fontsize=6.4, color=FAINT)
     pdf.savefig(fig, facecolor=PAPER)
     plt.close(fig)
