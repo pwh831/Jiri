@@ -75,6 +75,24 @@
   .subchip.on{border-color:var(--water);background:var(--water-t);color:var(--water-d);font-weight:600}
   .subchip.on n{color:var(--water-m)}
 
+  /* 유형 선택 */
+  .types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .types .chip{min-height:56px;padding:8px 12px;text-align:left;line-height:1.3}
+  .types .chip:first-child{grid-column:1 / -1;min-height:46px}
+  .types .chip small{display:block;font:400 11px var(--sans);color:var(--faint);margin-top:2px}
+  .types .chip.on small{color:var(--water-m)}
+
+  /* 특징 → 지명 */
+  .clue{margin-top:14px;border-left:3px solid var(--verm);background:var(--verm-t);
+        padding:14px 16px;font:400 16px/1.6 var(--serif);color:var(--ink)}
+  .opt.name span{font:600 16px var(--sans)}
+
+  /* 특징 떠올리기 */
+  .recall{border:1px solid var(--rule2);background:var(--card);padding:26px 20px;text-align:center}
+  .recall .nm{font:700 31px/1.25 var(--serif);letter-spacing:-.01em}
+  .recall .ask{margin-top:11px;font-size:13.5px;color:var(--ink2);line-height:1.7}
+  .recall .ask em{font:500 12px var(--mono);font-style:normal;color:var(--verm)}
+
   /* 칩·버튼 */
   .chips{display:flex;flex-wrap:wrap;gap:7px}
   .chip{min-height:44px;padding:0 15px;border:1px solid var(--rule2);border-radius:2px;
@@ -616,6 +634,13 @@ const CATLABEL = Object.fromEntries(CATS.map(c=>[c.key,c.label]));
 const UNITOF   = Object.fromEntries(CATS.map(c=>[c.key,UNITS.find(u=>u.id===c.unit)]));
 const KIND = {peninsula:"반도", island:"섬", sea:"바다", lake:"호수", strait:"해협", ocean:"바다",
               sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역"};
+const TYPES = [
+  {key:"both",   label:"혼합",        hint:"네 유형을 섞어서"},
+  {key:"name",   label:"지도 → 지명",  hint:"지도 보고 이름 쓰기"},
+  {key:"feat",   label:"지명 → 특징",  hint:"특징 고르기"},
+  {key:"rfeat",  label:"특징 → 지명",  hint:"설명 보고 지역 맞히기"},
+  {key:"recall", label:"특징 떠올리기", hint:"보지 않고 떠올린 뒤 확인"}
+];
 const countOf = k => ITEMS.filter(i=>i.category===k).length;
 const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
 
@@ -677,10 +702,9 @@ function home(){
 
   <div class="block">
     <div class="sec"><span>출제 설정</span><i></i></div>
-    <div class="grid g3" id="types" style="margin-bottom:9px">
-      <button class="chip ${cfg.types==="both"?"on":""}" data-t="both">혼합</button>
-      <button class="chip ${cfg.types==="name"?"on":""}" data-t="name">서답형</button>
-      <button class="chip ${cfg.types==="feat"?"on":""}" data-t="feat">5지선다</button>
+    <div class="types" id="types" style="margin-bottom:9px">
+      ${TYPES.map(t=>`<button class="chip ${cfg.types===t.key?"on":""}" data-t="${t.key}">${t.label}
+        <small>${t.hint}</small></button>`).join("")}
     </div>
     <div class="grid g4" id="counts" style="margin-bottom:9px">
       ${[10,20,30,999].map(n=>`<button class="chip ${cfg.count===n?"on":""} ${n===999?"":"mono"}" data-n="${n}">${n===999?"전체":n}</button>`).join("")}
@@ -754,13 +778,38 @@ function begin(list, isReview){
   render();
 }
 
+/* 어느 항목에 어떤 특징이 몇 번 나오는지 (중복 특징 판별용) */
+const FEATOWNERS = (()=>{ const m={};
+  ITEMS.forEach(i=>(i.features||[]).forEach(f=>{ (m[norm(f)]=m[norm(f)]||[]).push(i.id); }));
+  return m; })();
+
 function makeQ(item){
-  let type;
-  if (cfg.types==="name") type = "name";
-  else if (cfg.types==="feat") type = "feat";
-  else type = Math.random() < 0.5 ? "name" : "feat";
-  if (type==="feat" && !(item.features||[]).length) type = "name";
-  return type==="name" ? {type, item} : {type, item, ...buildChoices(item)};
+  const hasFeat = (item.features||[]).length > 0;
+  let type = cfg.types;
+  if (type === "both") type = ["name","feat","rfeat","recall"][Math.random()*4|0];
+  if (!hasFeat && type !== "name") type = "name";
+  if (type === "feat")   return {type, item, ...buildChoices(item)};
+  if (type === "rfeat")  return {type, item, ...buildReverse(item)};
+  return {type, item};                       // name · recall
+}
+
+/* 특징 → 지명: 단서로 쓸 특징은 그 항목에만 있는 것을 먼저 고른다 */
+function buildReverse(item){
+  const uniq = item.features.filter(f=>FEATOWNERS[norm(f)].length === 1);
+  const clue = (uniq.length ? uniq : item.features)[Math.random()*(uniq.length||item.features.length)|0];
+  const owners = new Set(FEATOWNERS[norm(clue)]);          // 같은 특징을 가진 지역은 보기에서 제외
+  const self = norm(item.name);
+  const pick = arr => shuffle(arr.filter(i=>
+        !owners.has(i.id) && norm(i.name)!==self));
+  const picks = [];
+  const push = arr => { for(const i of arr){
+      if(!picks.some(p=>norm(p.name)===norm(i.name))){ picks.push(i); if(picks.length>=4) return; } } };
+  push(pick(ITEMS.filter(i=>i.category===item.category)));
+  if(picks.length<4) push(pick(ITEMS.filter(i=>i.scope===item.scope)));
+  if(picks.length<4) push(pick(ITEMS));
+  const opts = shuffle([{name:item.name, ok:true},
+                        ...picks.map(i=>({name:i.name, ok:false}))]);
+  return {clue, opts};
 }
 
 /* 5지선다 보기 생성: 같은 카테고리 우선 → 같은 scope → 전체 */
@@ -816,6 +865,8 @@ let zoom = 100;
 function render(){
   const q = quiz.qs[quiz.at], it = q.item;
   const kind = KIND[it.category] || "지역";
+  if (q.type === "rfeat")  return renderReverse(q);
+  if (q.type === "recall") return renderRecall(q);
 
   if (q.type === "name"){
     const labeled = MAPS[it.map].labeled;
@@ -867,6 +918,78 @@ function render(){
     document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) answerFeat(+e.key-1); };
   }
   bindZoom();
+}
+
+function renderReverse(q){
+  const it = q.item;
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i></div>
+    <div class="q"><h2>다음 설명에 해당하는 ${KIND[it.category]||"지역"}은?</h2></div>
+    <div class="clue">${esc(q.clue)}</div>
+  </div>
+  <div class="opts" id="opts">
+    ${q.opts.map((o,i)=>`<button class="opt name" data-i="${i}"><b>${i+1}</b><span>${esc(o.name)}</span></button>`).join("")}
+  </div>`;
+  document.getElementById("opts").onclick = e=>{
+    const b = e.target.closest(".opt"); if(b) answerReverse(+b.dataset.i);
+  };
+  document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) answerReverse(+e.key-1); };
+}
+
+function renderRecall(q){
+  const it = q.item;
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i>
+      ${MAPS[it.map].labeled?`<em>${it.num}번</em>`:""}</div>
+    <div class="recall">
+      <div class="nm">${esc(it.name)}</div>
+      <div class="ask">이 ${KIND[it.category]||"지역"}의 특징을 떠올려 보세요<br>
+        <em>${it.features.length}가지</em></div>
+    </div>
+  </div>
+  <div class="actions"><button class="btn" id="show">특징 보기<small>ENTER</small></button></div>`;
+  const show = ()=>revealRecall(q);
+  document.getElementById("show").onclick = show;
+  document.onkeydown = e=>{ if(e.key==="Enter" && !e.isComposing){ e.preventDefault(); show(); } };
+}
+
+function revealRecall(q){
+  const it = q.item;
+  document.onkeydown = null;
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i></div>
+    <div class="recall"><div class="nm">${esc(it.name)}</div></div>
+  </div>
+  <div class="block">
+    <div class="ans">
+      <div class="feats"><lbl>FEATURES</lbl>
+        <div class="stack" style="gap:7px">${featList(it)}</div></div>
+    </div>
+  </div>
+  <div class="actions side">
+    <button class="btn2 verm" id="miss">못 떠올림</button>
+    <button class="btn" id="got">다 떠올림</button>
+  </div>`;
+  const done = ok => {
+    record(it, ok);
+    if(ok) quiz.right++;
+    quiz.log.push({item:it, ok, mine: ok?"떠올림":"못 떠올림", type:"떠올리기"});
+    quiz.at++; document.onkeydown = null;
+    quiz.at < quiz.qs.length ? render() : result();
+  };
+  document.getElementById("got").onclick  = ()=>done(true);
+  document.getElementById("miss").onclick = ()=>done(false);
+  document.onkeydown = e=>{
+    if(e.isComposing) return;
+    if(e.key==="Enter"){ e.preventDefault(); done(true); }
+    if(e.key==="Backspace"){ e.preventDefault(); done(false); }
+  };
 }
 
 function bindZoom(){
@@ -932,6 +1055,31 @@ function answerFeat(idx){
     if(q.opts[i].ok){ b.classList.add("correct"); b.insertAdjacentHTML("beforeend", `<em>정답</em>`); }
     else if(i===idx){ b.classList.add("wrong"); b.insertAdjacentHTML("beforeend", `<em>내 답</em>`); }
     else b.insertAdjacentHTML("beforeend", `<em>${esc(q.opts[i].from)}</em>`);
+  });
+  app.insertAdjacentHTML("beforeend", `
+    <div class="block" style="margin-top:22px">
+      <div class="allfeat">
+        <lbl>${esc(it.name)} · 전체 특징</lbl>
+        <div class="stack" style="gap:6px">${it.features.map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
+      </div>
+    </div>
+    ${nextBtn()}`);
+  wireNext();
+}
+
+function answerReverse(idx){
+  const q = quiz.qs[quiz.at], it = q.item;
+  if(!q.opts || q.opts[idx]===undefined || q.answered) return;
+  q.answered = true;
+  document.onkeydown = null;
+  const ok = q.opts[idx].ok;
+  if(ok) quiz.right++;
+  record(it, ok);
+  quiz.log.push({item:it, ok, mine:q.opts[idx].name, type:"특징→지명"});
+  document.querySelectorAll(".opt").forEach((b,i)=>{
+    b.disabled = true;
+    if(q.opts[i].ok){ b.classList.add("correct"); b.insertAdjacentHTML("beforeend", `<em>정답</em>`); }
+    else if(i===idx){ b.classList.add("wrong"); b.insertAdjacentHTML("beforeend", `<em>내 답</em>`); }
   });
   app.insertAdjacentHTML("beforeend", `
     <div class="block" style="margin-top:22px">
