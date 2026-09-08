@@ -78,12 +78,34 @@ python3 build.py     # → 지역이해-암기퀴즈.html 갱신
 각주에만 나오는 내용은 퀴즈 데이터에서 제외했습니다.
 어떤 서술을 뺐는지는 `docs/빈칸-정답-정리.md`에 정리되어 있습니다.
 
+## 정답 지도 PDF (굿노트용)
+
+`docs/지역이해-정답지도.pdf` — 학습지 항목 131곳을 지도 위에 이름과 특징까지 적어 놓은 정답본.
+
+- A4 가로 9쪽 (세계 4쪽 + 한국 5쪽)
+- 완전 벡터라 굿노트에서 아무리 확대해도 깨지지 않고, 글자 검색도 됩니다
+- 지도는 Natural Earth·GSHHG 공개 자료로 새로 그렸습니다 (학습지 스캔본이 아님)
+
+고치거나 다시 만들 때:
+
+```bash
+pip install matplotlib "geopandas<1.0" koreanize-matplotlib basemap basemap-data-hires
+ln -sfn <site-packages>/mpl_toolkits/basemap_data <site-packages>/mpl_toolkits/basemap/data
+python3 tools/make_answer_maps.py
+```
+
+좌표는 `tools/places.py`, 특징은 `data/items.js`에서 가져옵니다.
+
 ## 구성
 
 ```
 index.html                  앱 전체 (UI + 퀴즈 엔진)
 data/items.js               문제 데이터 131항목
 assets/maps/*.png           학습지에서 추출한 지도 8장
+tools/make_maps.py          학습지 PDF에서 퀴즈용 지도 추출
+tools/make_answer_maps.py   정답 지도 PDF 생성
+tools/places.py             항목 131곳의 위도·경도
+docs/지역이해-정답지도.pdf   굿노트용 정답 지도 (A4 가로 9쪽)
 docs/PRD.md                 제품 요구사항 정의서
 docs/빈칸-정답-정리.md       학습지 빈칸을 추론해 채운 내역과 근거
 ```
