@@ -101,6 +101,10 @@
         background:transparent;color:var(--ink2);font:500 14px var(--sans);cursor:pointer}
   .btn2.verm{border-color:var(--verm);color:var(--verm);font-weight:600}
   .stack{display:flex;flex-direction:column;gap:9px}
+  /* 화면 아래 고정 — 범위 목록이 길어 시작 버튼이 접힘 아래로 밀리는 것 방지 */
+  .actions{position:sticky;bottom:0;z-index:5;margin:14px -22px 0;
+       padding:12px 22px calc(14px + env(safe-area-inset-bottom,0px));
+       background:var(--paper);border-top:1px solid var(--rule2)}
   .side{display:flex;gap:9px}
   .side .btn2{flex:1}.side .btn{flex:2}
 
@@ -352,7 +356,7 @@ function home(){
     </div>
   </div>
 
-  <div class="stack">
+  <div class="actions stack">
     <button class="btn" id="start" ${picked?"":"disabled"}>시작하기<small>${
       picked ? (cfg.count===999?picked+"문항":Math.min(cfg.count,picked)+"문항") : "범위를 고르세요"}</small></button>
     ${wrong?`<button class="btn2 verm" id="wrongOnly">오답 노트 다시 풀기 <span class="mono">${wrong}</span></button>`:""}
@@ -495,7 +499,7 @@ function render(){
       </div>
       <div class="hintrow"><span>접미어(시·군·도·강·섬)는 생략해도 정답</span><em>ENTER</em></div>
     </div>
-    <div class="side">
+    <div class="actions side">
       <button class="btn2" id="skip">모르겠음</button>
       <button class="btn" id="sub">제출</button>
     </div>`;
