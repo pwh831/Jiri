@@ -55,3 +55,24 @@ for need in ("const ITEMS", "const UNITS", "const MAPS", "function home()"):
 
 open(OUT, "w", encoding="utf-8").write(single)
 print(f"{os.path.basename(OUT)} — {len(paths)}장의 지도 포함, {os.path.getsize(OUT):,} bytes")
+
+# ── Artifact(웹 링크) 용본 ────────────────────────────────────
+# 발행할 때 <!doctype>·<html>·<head>·<body> 껍데기가 자동으로 씌워지므로
+# 그 태그들을 걷어내고 알맹이만 남긴다. 파비콘은 발행 옵션으로 지정한다.
+WEB = os.path.join(ROOT, "jiri-quiz-web.html")
+web = single
+for tag in ("<!doctype html>", "<html lang=\"ko\">", "<head>", "</head>",
+            "<body>", "</body>", "</html>"):
+    web = web.replace(tag, "", 1)
+web = re.sub(r'<meta charset[^>]*>\n?', '', web, count=1)
+web = re.sub(r'<meta name="viewport"[^>]*>\n?', '', web, count=1)
+web = re.sub(r'<link rel="icon"[^>]*>\n?', '', web, count=1)
+web = web.strip() + "\n"
+for banned in ("<!doctype", "<html", "<head>", "<body>"):
+    if banned in web.lower():
+        sys.exit(f"용본에 '{banned}' 가 남아 있습니다.")
+for need in ("<title>", "const ITEMS", "function home()"):
+    if need not in web:
+        sys.exit(f"용본에 '{need}' 가 없습니다.")
+open(WEB, "w", encoding="utf-8").write(web)
+print(f"{os.path.basename(WEB)} — 웹 발행용, {os.path.getsize(WEB):,} bytes")
