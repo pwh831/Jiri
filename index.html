@@ -50,6 +50,31 @@
   .stats v{display:block;font:700 22px/1.25 var(--serif);margin-top:5px}
   .stats small{font:400 13px var(--sans);color:var(--faint)}
 
+  /* 대단원 목록 */
+  .areatog{flex:none;min-height:30px;padding:0 11px;border:1px solid var(--rule2);border-radius:2px;
+       background:transparent;color:var(--ink2);font:500 11.5px var(--sans);cursor:pointer}
+  .areatog.on{border-color:var(--water);background:var(--water-t);color:var(--water-d)}
+  .unit{border-bottom:1px solid var(--rule);padding-bottom:0}
+  .unit:first-of-type{border-top:1px solid var(--rule)}
+  .unitrow{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 4px;
+       border:0;background:transparent;cursor:pointer;text-align:left;color:var(--ink)}
+  .uno{flex:none;font:500 12px var(--mono);letter-spacing:.06em;color:var(--faint);width:28px}
+  .utitle{flex-grow:1;font:600 15px var(--sans)}
+  .ucount{flex:none;font:500 12px var(--mono);color:var(--faint)}
+  .umark{flex:none;display:grid;place-items:center;width:22px;height:22px;border:1px solid var(--rule2);
+       border-radius:50%;font-size:12px;color:transparent}
+  .unit.on .uno{color:var(--water)}
+  .unit.on .utitle{color:var(--water-d)}
+  .unit.on .ucount{color:var(--water-m)}
+  .unit.on .umark{border-color:var(--water);background:var(--water);color:var(--card)}
+  .unit.part .umark{border-color:var(--water);color:var(--water)}
+  .subcats{display:flex;flex-wrap:wrap;gap:6px;padding:0 4px 12px 40px}
+  .subchip{min-height:36px;padding:0 12px;border:1px solid var(--rule2);border-radius:2px;
+       background:transparent;color:var(--ink2);font:500 12.5px var(--sans);cursor:pointer}
+  .subchip n{font:500 10.5px var(--mono);color:var(--faint);margin-left:5px}
+  .subchip.on{border-color:var(--water);background:var(--water-t);color:var(--water-d);font-weight:600}
+  .subchip.on n{color:var(--water-m)}
+
   /* 칩·버튼 */
   .chips{display:flex;flex-wrap:wrap;gap:7px}
   .chip{min-height:44px;padding:0 15px;border:1px solid var(--rule2);border-radius:2px;
@@ -237,23 +262,13 @@ function judge(input, item){
   return null;
 }
 
-/* ---------- 카테고리 정의 ---------- */
-const CATS = [
-  {key:"sido",        label:"17개 시·도",  scope:"korea"},
-  {key:"sudogwon",    label:"수도권",      scope:"korea"},
-  {key:"chungcheong", label:"충청권",      scope:"korea"},
-  {key:"gangwon",     label:"강원권",      scope:"korea"},
-  {key:"honam",       label:"호남권",      scope:"korea"},
-  {key:"ocean",       label:"오대양",      scope:"world"},
-  {key:"peninsula",   label:"반도",        scope:"world"},
-  {key:"island",      label:"섬",          scope:"world"},
-  {key:"sea",         label:"바다·만",     scope:"world"},
-  {key:"lake",        label:"호수",        scope:"world"},
-  {key:"strait",      label:"해협",        scope:"world"}
-];
+/* ---------- 분류 ---------- */
 const CATLABEL = Object.fromEntries(CATS.map(c=>[c.key,c.label]));
+const UNITOF   = Object.fromEntries(CATS.map(c=>[c.key,UNITS.find(u=>u.id===c.unit)]));
 const KIND = {peninsula:"반도", island:"섬", sea:"바다", lake:"호수", strait:"해협", ocean:"바다",
               sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역"};
+const countOf = k => ITEMS.filter(i=>i.category===k).length;
+const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
 
 /* ---------- 세션 상태 ---------- */
 let cfg = { cats: CATS.map(c=>c.key), types:"both", count:20, order:"weak" };
@@ -263,15 +278,42 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]];} return a; };
 
 /* ---------- 홈 ---------- */
-function chipHTML(c){
-  const n = ITEMS.filter(i=>i.category===c.key).length;
-  return `<button class="chip ${cfg.cats.includes(c.key)?"on":""}" data-c="${c.key}">${c.label}<n>${n}</n></button>`;
+function unitState(u){
+  const on = u.cats.filter(c=>cfg.cats.includes(c)).length;
+  return on===0 ? "off" : on===u.cats.length ? "on" : "part";
+}
+function unitHTML(u){
+  const st = unitState(u);
+  const sub = u.cats.length > 1
+    ? `<div class="subcats">${u.cats.map(c=>
+        `<button class="subchip ${cfg.cats.includes(c)?"on":""}" data-c="${c}">${CATLABEL[c]}<n>${countOf(c)}</n></button>`
+      ).join("")}</div>` : "";
+  return `<div class="unit ${st}">
+    <button class="unitrow" data-u="${u.id}">
+      <span class="uno">${u.no}</span>
+      <span class="utitle">${u.title}</span>
+      <span class="ucount">${unitCount(u)}</span>
+      <span class="umark">${st==="on"?"✓":st==="part"?"–":""}</span>
+    </button>${sub}
+  </div>`;
+}
+function areaHTML(a){
+  const us = UNITS.filter(u=>u.area===a.id);
+  const cats = us.flatMap(u=>u.cats);
+  const all = cats.every(c=>cfg.cats.includes(c));
+  const n = us.reduce((t,u)=>t+unitCount(u),0);
+  return `<div class="block">
+    <div class="sec"><span>${a.title}</span><i></i>
+      <button class="areatog ${all?"on":""}" data-a="${a.id}">${all?"전체 해제":"전체 선택"}</button>
+      <em>${n}</em></div>
+    ${us.map(unitHTML).join("")}
+  </div>`;
 }
 function home(){
   const done = Object.keys(store).length;
   const mastered = Object.values(store).filter(s=>s.streak>=3).length;
   const wrong = ITEMS.filter(i=>{ const s=store[i.id]; return s && s.wrong>0 && s.streak<3; }).length;
-  const kr = CATS.filter(c=>c.scope==="korea"), wd = CATS.filter(c=>c.scope==="world");
+  const picked = ITEMS.filter(i=>cfg.cats.includes(i.category)).length;
 
   app.innerHTML = `
   <div class="block">
@@ -282,20 +324,7 @@ function home(){
     </div>
   </div>
 
-  <div class="block">
-    <div class="sec"><span>학습 범위</span><i></i><em>${cfg.cats.length}</em></div>
-    <div id="cats">
-      <div class="grp">KOREA</div>
-      <div class="chips" style="margin-bottom:16px">${kr.map(chipHTML).join("")}</div>
-      <div class="grp">WORLD</div>
-      <div class="chips">${wd.map(chipHTML).join("")}</div>
-    </div>
-    <div class="grid g3" style="margin-top:14px">
-      <button class="btn2" id="allKr">한국만</button>
-      <button class="btn2" id="allWorld">세계만</button>
-      <button class="btn2" id="allAll">전체</button>
-    </div>
-  </div>
+  <div id="scope">${AREAS.map(areaHTML).join("")}</div>
 
   <div class="block">
     <div class="sec"><span>출제 설정</span><i></i></div>
@@ -314,21 +343,36 @@ function home(){
   </div>
 
   <div class="stack">
-    <button class="btn" id="start">시작하기<small>${cfg.count===999?"전체":cfg.count+"문항"}</small></button>
+    <button class="btn" id="start" ${picked?"":"disabled"}>시작하기<small>${
+      picked ? (cfg.count===999?picked+"문항":Math.min(cfg.count,picked)+"문항") : "범위를 고르세요"}</small></button>
     ${wrong?`<button class="btn2 verm" id="wrongOnly">오답 노트 다시 풀기 <span class="mono">${wrong}</span></button>`:""}
     <button class="btn2" id="reset" style="border:0;color:var(--faint);font-size:12.5px;min-height:36px">기록 초기화</button>
   </div>`;
 
-  document.getElementById("cats").onclick = e=>{
-    const el = e.target.closest(".chip"); if(!el) return;
-    const c = el.dataset.c;
-    cfg.cats = cfg.cats.includes(c) ? cfg.cats.filter(x=>x!==c) : [...cfg.cats, c];
-    home();
+  document.getElementById("scope").onclick = e=>{
+    const sub = e.target.closest(".subchip");
+    if(sub){
+      const c = sub.dataset.c;
+      cfg.cats = cfg.cats.includes(c) ? cfg.cats.filter(x=>x!==c) : [...cfg.cats, c];
+      return home();
+    }
+    const row = e.target.closest(".unitrow");
+    if(row){
+      const u = UNITS.find(x=>x.id===row.dataset.u);
+      cfg.cats = unitState(u)==="on"
+        ? cfg.cats.filter(c=>!u.cats.includes(c))
+        : [...new Set([...cfg.cats, ...u.cats])];
+      return home();
+    }
+    const at = e.target.closest(".areatog");
+    if(at){
+      const cats = UNITS.filter(u=>u.area===at.dataset.a).flatMap(u=>u.cats);
+      cfg.cats = cats.every(c=>cfg.cats.includes(c))
+        ? cfg.cats.filter(c=>!cats.includes(c))
+        : [...new Set([...cfg.cats, ...cats])];
+      return home();
+    }
   };
-  const setCats = list => { cfg.cats = list; home(); };
-  document.getElementById("allKr").onclick    = ()=>setCats(kr.map(c=>c.key));
-  document.getElementById("allWorld").onclick = ()=>setCats(wd.map(c=>c.key));
-  document.getElementById("allAll").onclick   = ()=>setCats(CATS.map(c=>c.key));
   document.getElementById("types").onclick  = e=>{ const el=e.target.closest(".chip"); if(el){cfg.types=el.dataset.t; home();} };
   document.getElementById("counts").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.count=+el.dataset.n; home();} };
   document.getElementById("orders").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.order=el.dataset.o; home();} };
@@ -455,7 +499,7 @@ function render(){
     app.innerHTML = `
     <div class="block">${headHTML()}</div>
     <div class="block">
-      <div class="sec" style="margin-bottom:14px"><span>${CATLABEL[it.category]}</span><i></i>
+      <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i>
         ${MAPS[it.map].labeled?`<em>${it.num}번</em>`:""}</div>
       <div class="q"><h2><mark>${esc(it.name)}</mark>에 대한 설명으로<br>옳은 것은?</h2></div>
     </div>
@@ -563,7 +607,7 @@ function result(){
   const rate = Math.round(quiz.right / quiz.qs.length * 100);
   const byCat = {};
   quiz.log.forEach(l=>{
-    const k = CATLABEL[l.item.category];
+    const k = UNITOF[l.item.category].no + " " + CATLABEL[l.item.category];
     byCat[k] = byCat[k] || {n:0, r:0};
     byCat[k].n++; if(l.ok) byCat[k].r++;
   });

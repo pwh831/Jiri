@@ -3,6 +3,40 @@
  * 빈칸 미기재 항목은 추론하여 채웠으며, docs/빈칸-정답-정리.md 에 근거를 정리함
  */
 
+/* 학습지 대단원 구조
+ * 큰 틀 두 개(한국지리 / 세계지리) 아래 학습지 단원 번호대로 배치.
+ * 006~008단원(영남권·제주 등, 학습지 15~22쪽)은 아직 미수령. */
+const AREAS = [
+  { id:"korea", title:"한국지리" },
+  { id:"world", title:"세계지리" }
+];
+
+const UNITS = [
+  { id:"u001", no:"001", title:"지역과 지역 구분",        area:"korea", cats:["sido"] },
+  { id:"u002", no:"002", title:"수도권",                  area:"korea", cats:["sudogwon"] },
+  { id:"u003", no:"003", title:"충청 지방",               area:"korea", cats:["chungcheong"] },
+  { id:"u004", no:"004", title:"강원 지방",               area:"korea", cats:["gangwon"] },
+  { id:"u005", no:"005", title:"호남 지방",               area:"korea", cats:["honam"] },
+  { id:"u009", no:"009", title:"오대양 육대주",           area:"world", cats:["ocean"] },
+  { id:"u010", no:"010", title:"세계의 주요 반도와 섬",   area:"world", cats:["peninsula","island"] },
+  { id:"u011", no:"011", title:"세계의 주요 바다와 호수", area:"world", cats:["sea","lake","strait"] }
+];
+
+/* 세부 갈래 이름 (한 단원 안에서 더 나눠 풀 때) */
+const CATS = [
+  { key:"sido",        label:"17개 시·도", unit:"u001" },
+  { key:"sudogwon",    label:"수도권",     unit:"u002" },
+  { key:"chungcheong", label:"충청권",     unit:"u003" },
+  { key:"gangwon",     label:"강원권",     unit:"u004" },
+  { key:"honam",       label:"호남권",     unit:"u005" },
+  { key:"ocean",       label:"오대양",     unit:"u009" },
+  { key:"peninsula",   label:"반도",       unit:"u010" },
+  { key:"island",      label:"섬",         unit:"u010" },
+  { key:"sea",         label:"바다·만",    unit:"u011" },
+  { key:"lake",        label:"호수",       unit:"u011" },
+  { key:"strait",      label:"해협",       unit:"u011" }
+];
+
 const MAPS = {
   kr_admin:    { title: "우리나라 행정구역(17개 시·도)", image: "assets/maps/kr_admin.png", labeled: false },
   sudogwon:    { title: "수도권",       image: "assets/maps/sudogwon.png",    labeled: true },
@@ -26,7 +60,7 @@ const ITEMS = [
 { id:"sido_gangwon", map:"kr_admin", scope:"korea", category:"sido", name:"강원도", aliases:["강원특별자치도","강원"], marker:{x:63,y:18},
   features:["인구 약 150만 명","태백산맥을 경계로 영서·영동으로 구분","전통적 지역 구분으로는 관동 지방"] },
 { id:"sido_chungbuk", map:"kr_admin", scope:"korea", category:"sido", name:"충청북도", aliases:["충북"], marker:{x:57,y:33},
-  features:["인구 약 160만 명","우리나라에서 유일하게 바다와 접하지 않는 도","도청 소재지는 청주시"] },
+  features:["인구 약 160만 명","도청 소재지는 청주시","전통적 지역 구분으로는 호서 지방"] },
 { id:"sido_chungnam", map:"kr_admin", scope:"korea", category:"sido", name:"충청남도", aliases:["충남"], marker:{x:40,y:34},
   features:["인구 약 210만 명","도청 소재지는 홍성군·예산군의 내포 신도시","전통적 지역 구분으로는 호서 지방"] },
 { id:"sido_daejeon", map:"kr_admin", scope:"korea", category:"sido", name:"대전광역시", aliases:["대전"], marker:{x:47.5,y:43},
@@ -40,17 +74,17 @@ const ITEMS = [
 { id:"sido_gwangju", map:"kr_admin", scope:"korea", category:"sido", name:"광주광역시", aliases:["광주"], marker:{x:38,y:63},
   features:["인구 약 140만 명","호남권 최대 도시","자동차 산업 발달"] },
 { id:"sido_gyeongbuk", map:"kr_admin", scope:"korea", category:"sido", name:"경상북도", aliases:["경북"], marker:{x:68,y:38},
-  features:["인구 약 250만 명","도청 소재지는 안동시·예천군","원자력 발전 공급량이 가장 많은 도"] },
+  features:["인구 약 250만 명","도청 소재지는 안동시·예천군","전통적 지역 구분으로는 영남 지방",] },
 { id:"sido_daegu", map:"kr_admin", scope:"korea", category:"sido", name:"대구광역시", aliases:["대구"], marker:{x:65.5,y:48},
-  features:["인구 약 240만 명","혁신도시는 동구에 조성","분지 지형의 내륙 도시"] },
+  features:["인구 약 240만 명","혁신도시는 동구에 조성"] },
 { id:"sido_gyeongnam", map:"kr_admin", scope:"korea", category:"sido", name:"경상남도", aliases:["경남"], marker:{x:62,y:57},
   features:["인구 약 320만 명","도청 소재지는 창원시","혁신도시는 진주시에 조성"] },
 { id:"sido_ulsan", map:"kr_admin", scope:"korea", category:"sido", name:"울산광역시", aliases:["울산"], marker:{x:74,y:52},
   features:["인구 약 110만 명","광역시 중 인구가 가장 적음","혁신도시는 중구에 조성"] },
 { id:"sido_busan", map:"kr_admin", scope:"korea", category:"sido", name:"부산광역시", aliases:["부산"], marker:{x:71.5,y:59},
-  features:["인구 약 320만 명","혁신도시는 영도구·해운대구·남구에 조성","우리나라 제1의 항구 도시"] },
+  features:["인구 약 320만 명","혁신도시는 영도구·해운대구·남구에 조성","전통적 지역 구분으로는 영남 지방"] },
 { id:"sido_jeju", map:"kr_admin", scope:"korea", category:"sido", name:"제주특별자치도", aliases:["제주도","제주"], marker:{x:37,y:95},
-  features:["인구 약 70만 명","주간인구지수가 전국과 같은 100","지역 인구 대비 소비자 서비스업 종사자 비율 1위"] },
+  features:["인구 약 70만 명","주간인구지수가 전국과 같은 100","전통적 지역 구분에서는 남부 지방에 포함",] },
 
 /* ===== 수도권 ===== */
 { id:"sd01", map:"sudogwon", num:1, scope:"korea", category:"sudogwon", name:"파주시", aliases:["파주"],
@@ -68,7 +102,7 @@ const ITEMS = [
 { id:"sd07", map:"sudogwon", num:7, scope:"korea", category:"sudogwon", name:"수원시", aliases:["수원"],
   features:["경기도청 소재지","세계문화유산 수원 화성","인구 수 경기 1위 도시"] },
 { id:"sd08", map:"sudogwon", num:8, scope:"korea", category:"sudogwon", name:"안산시", aliases:["안산"],
-  features:["1976년부터 개발된 공업 분담 위성도시(서울 소재 중소 산업체 이전)","지자체 중 외국인 인구 비중이 가장 높음(원곡동 국경없는 마을)","시화호 조력발전소"] },
+  features:["1976년부터 개발된 공업 분담 위성도시(서울 소재 중소 산업체 이전)","지자체 중 외국인 인구 비중이 가장 높음(국경없는 마을)","시화호 조력발전소"] },
 { id:"sd09", map:"sudogwon", num:9, scope:"korea", category:"sudogwon", name:"화성시", aliases:["화성"],
   features:["제조업 출하액 경기 1위","IT·자동차 공업 발달","수도권 2기 신도시 동탄","공룡알 화석지","2000년 대비 인구 수 500% 증가"] },
 { id:"sd10", map:"sudogwon", num:10, scope:"korea", category:"sudogwon", name:"이천시", aliases:["이천"],
@@ -76,7 +110,7 @@ const ITEMS = [
 { id:"sd11", map:"sudogwon", num:11, scope:"korea", category:"sudogwon", name:"여주시", aliases:["여주"],
   features:["도자기 축제","벼농사 발달"] },
 { id:"sd12", map:"sudogwon", num:12, scope:"korea", category:"sudogwon", name:"평택시", aliases:["평택"],
-  features:["국제 물류항(평택·당진항)","자동차 공업 발달","자동차 수출 분야 국내 1위"] },
+  features:["국제 물류항","자동차 공업 발달"] },
 { id:"sd13", map:"sudogwon", num:13, scope:"korea", category:"sudogwon", name:"강화도", aliases:["강화군","강화"],
   features:["인천광역시에 속한 섬","람사르 등록 습지(매화마름 군락지)","세계문화유산 고인돌 유적"] },
 
@@ -140,7 +174,7 @@ const ITEMS = [
 { id:"gw10", map:"gangwon", num:10, scope:"korea", category:"gangwon", name:"영월군", aliases:["영월"],
   features:["감입곡류하천(동강)","선암마을(한반도 지형, 서강)","상동읍 텅스텐 광산(폐광되었으나 최근 재가동 계획 중)","고씨굴(석회동굴)"] },
 { id:"gw11", map:"gangwon", num:11, scope:"korea", category:"gangwon", name:"태백시", aliases:["태백"],
-  features:["석탄박물관(국내 최대 규모)","고원도시","태백산 눈축제","검룡소(남한강 발원지)","추전역(기차역 중 가장 높은 곳에 위치)","너덜샘(낙동강 발원지)"] },
+  features:["석탄박물관(국내 최대 규모)","고원도시","태백산 눈축제","검룡소(남한강 발원지)","추전역(기차역 중 가장 높은 곳에 위치)"] },
 { id:"gw12", map:"gangwon", num:12, scope:"korea", category:"gangwon", name:"삼척시", aliases:["삼척"],
   features:["카르스트 지형","2002 세계동굴엑스포 개최(대이리 동굴지대)","시멘트 공업 발달","오십천(감입곡류하천, 죽서루·통리협곡)"] },
 { id:"gw13", map:"gangwon", num:13, scope:"korea", category:"gangwon", name:"정선군", aliases:["정선"],
@@ -150,7 +184,7 @@ const ITEMS = [
 { id:"hn01", map:"honam", num:1, scope:"korea", category:"honam", name:"군산시", aliases:["군산"],
   features:["뜬다리 부두(조차 극복)","금강하굿둑(서천군과 연결)","일제 강점기 항구로 성장","새만금 방조제(부안군과 연결)","국내공항","산업 단지 발달"] },
 { id:"hn02", map:"honam", num:2, scope:"korea", category:"honam", name:"김제시", aliases:["김제"],
-  features:["호남평야의 중심","벽골제(한반도에서 가장 오래된 인공저수지)","지평선 축제(전통 농경 문화 체험)"] },
+  features:["호남평야의 중심","벽골제","지평선 축제(전통 농경 문화 체험)"] },
 { id:"hn03", map:"honam", num:3, scope:"korea", category:"honam", name:"부안군", aliases:["부안"],
   features:["새만금 방조제(군산시와 연결)","변산반도 국립공원"] },
 { id:"hn04", map:"honam", num:4, scope:"korea", category:"honam", name:"고창군", aliases:["고창"],
@@ -164,7 +198,7 @@ const ITEMS = [
 { id:"hn08", map:"honam", num:8, scope:"korea", category:"honam", name:"남원시", aliases:["남원"],
   features:["침식분지","광한루원(춘향전의 배경)","춘향제","목기"] },
 { id:"hn09", map:"honam", num:9, scope:"korea", category:"honam", name:"영광군", aliases:["영광"],
-  features:["원자력 발전소 입지","굴비(법성포, 인근 염전에서 생산된 소금 활용)","호남권에서 유일하게 원자력을 공급"] },
+  features:["원자력 발전소 입지","굴비(법성포, 인근 염전에서 생산된 소금 활용)"] },
 { id:"hn10", map:"honam", num:10, scope:"korea", category:"honam", name:"함평군", aliases:["함평"],
   features:["나비 축제(친환경적 생태관광 축제)"] },
 { id:"hn11", map:"honam", num:11, scope:"korea", category:"honam", name:"무안군", aliases:["무안"],
@@ -200,13 +234,13 @@ const ITEMS = [
 
 /* ===== 오대양 ===== */
 { id:"oc1", map:"world_ocean", num:1, scope:"world", category:"ocean", name:"북극해", aliases:["북빙양"],
-  features:["오대양 중 가장 작은 바다","북극 주변에 위치"] },
+  features:["북극 주변에 위치한 바다","아시아·유럽·북아메리카 대륙으로 둘러싸여 있음"] },
 { id:"oc2", map:"world_ocean", num:2, scope:"world", category:"ocean", name:"인도양", aliases:[],
-  features:["오대양 중 세 번째로 큰 바다","아프리카 동쪽과 오스트레일리아 서쪽 사이"] },
+  features:["아프리카 동쪽과 오스트레일리아 서쪽 사이","아라비아해·벵골만·홍해·페르시아만이 부속해"] },
 { id:"oc3", map:"world_ocean", num:3, scope:"world", category:"ocean", name:"태평양", aliases:[],
-  features:["세계에서 가장 큰 바다","환태평양 조산대가 둘러싸고 있음"] },
+  features:["세계에서 가장 큰 바다","아시아·오세아니아와 아메리카 사이","남중국해·동중국해·오호츠크해가 부속해"] },
 { id:"oc4", map:"world_ocean", num:4, scope:"world", category:"ocean", name:"대서양", aliases:[],
-  features:["오대양 중 두 번째로 큰 바다","아메리카와 유럽·아프리카 사이"] },
+  features:["아메리카와 유럽·아프리카 사이","북해·발트해·지중해·흑해·카리브해·멕시코만이 부속해"] },
 { id:"oc5", map:"world_ocean", num:5, scope:"world", category:"ocean", name:"남극해", aliases:["남빙양"],
   features:["남극 대륙을 둘러싼 바다","오대양 중 가장 남쪽에 위치"] },
 
@@ -262,7 +296,7 @@ const ITEMS = [
 { id:"ws04", map:"world_sea", num:4, scope:"world", category:"sea", name:"흑해", aliases:[],
   features:["유럽에서 두 번째로 긴 도나우 강(영어명칭 다뉴브 강)이 유입되는 내해","러시아 내륙과 중앙아시아 지역을 유럽과 연결하는 전략적 통로","남서쪽으로는 터키의 보스포루스 해협을 통해 지중해와 연결","북동쪽으로는 1952년에 건설된 볼가-돈 운하를 통해 카스피해와 연결"] },
 { id:"ws05", map:"world_sea", num:5, scope:"world", category:"lake", name:"카스피해", aliases:["카스피 해"],
-  features:["러시아·카자흐스탄·투르크메니스탄·이란·아제르바이잔 5개국으로 둘러싸인 수역","면적 37만 ㎢로 한반도의 1.7배 크기","'제2의 페르시아'로 불리는 석유와 천연가스의 보고","바다냐 호수냐의 법적 지위를 놓고 오랜 대립이 있었고 2018년 협정으로 '해'로 인정"] },
+  features:["러시아·카자흐스탄·투르크메니스탄·이란·아제르바이잔 5개국으로 둘러싸인 수역","면적 37만 ㎢로 한반도의 1.7배 크기","'제2의 페르시아'로 불리는 석유와 천연가스의 보고","바다냐 호수냐의 법적 지위 확정 문제를 놓고 오랜 대립이 있었음"] },
 { id:"ws06", map:"world_sea", num:6, scope:"world", category:"lake", name:"아랄해", aliases:["아랄 해"],
   features:["카자흐스탄과 우즈베키스탄 사이에 위치한 염호","한때 세계에서 4번째로 큰 호수였음","1960년대 소비에트연방이 목화 재배를 위해 아무다리야 강과 시르다리야 강을 대규모 관개에 사용","유입량 감소로 면적과 수심이 줄고 염분 농도가 증가해 생태계가 파괴됨"] },
 { id:"ws07", map:"world_sea", num:7, scope:"world", category:"lake", name:"바이칼호", aliases:["바이칼 호","바이칼"],
@@ -296,4 +330,4 @@ const ITEMS = [
 
 ];
 
-if (typeof module !== "undefined") { module.exports = { MAPS, ITEMS }; }
+if (typeof module !== "undefined") { module.exports = { AREAS, UNITS, CATS, MAPS, ITEMS }; }
