@@ -24,6 +24,9 @@ from places import WORLD, KOREA
 PAPER, INK, INK2, FAINT = "#FBF9F4", "#1F1B16", "#5C554A", "#8A8272"
 WATER, MOSS, VERM, RULE  = "#33596B", "#4A6E44", "#B0512C", "#C9C1B0"
 SEA, LAND                = "#EAF0F3", "#FFFFFF"
+# 지명 구분용 4색. 종이(#FBF9F4) 위 대비 3:1 이상, 전 조합 정상시야 ΔE 15 이상.
+# 색맹 조합(초록↔주황 ΔE 6.1)은 이름표가 항상 함께 붙어 있어 색만으로 구분하지 않는다.
+LABEL_COLORS = ["#1E6FC4", "#C4551E", "#1B8A3E", "#B03070"]
 
 # ── 학습지 특징 불러오기 ──────────────────────────────────────
 def load_features():
@@ -126,36 +129,71 @@ def _candidates():
 OFFS = _candidates()
 
 def place_labels(fig, ax, m, items, fs, ms):
+    """이름표를 겹치지 않게 놓고, 가까운 것끼리 다른 색을 준다.
+    점·이름표·지시선이 같은 색이라 어느 이름이 어느 점인지 바로 보인다."""
     fig.canvas.draw()
     ren = fig.canvas.get_renderer()
-    placed = []
-    order = sorted(items, key=lambda t: -t[1])          # 북쪽부터
-    for name, lat, lon in order:
+    drawn, placed = [], []
+    for name, lat, lon in sorted(items, key=lambda t: -t[1]):
         x, y = m(lon, lat)
-        ax.plot(x, y, "o", ms=4.0, mfc=VERM, mec="white", mew=0.9, zorder=5)
+        dot, = ax.plot(x, y, "o", ms=4.4, mfc=INK, mec="white", mew=0.9, zorder=6)
         chosen = None
         for dx, dy in OFFS:
             t = ax.annotate(name, (x, y), textcoords="offset points", xytext=(dx, dy),
-                            ha="center", va="center", fontsize=fs, color=INK, zorder=6,
+                            ha="center", va="center", fontsize=fs, zorder=7,
                             path_effects=[withStroke(linewidth=2.8, foreground=PAPER)])
             bb = t.get_window_extent(ren).expanded(1.05, 1.30)
             if not any(bb.overlaps(q) for q in placed):
                 chosen = (t, bb, dx, dy); break
             t.remove()
-        if chosen is None:                              # 그래도 없으면 맨 위로
+        if chosen is None:
             dx, dy = 0, 96
             t = ax.annotate(name, (x, y), textcoords="offset points", xytext=(dx, dy),
-                            ha="center", va="center", fontsize=fs, color=INK, zorder=6,
+                            ha="center", va="center", fontsize=fs, zorder=7,
                             path_effects=[withStroke(linewidth=2.8, foreground=PAPER)])
             chosen = (t, t.get_window_extent(ren).expanded(1.05, 1.30), dx, dy)
         t, bb, dx, dy = chosen
         placed.append(bb)
-        if abs(dx) + abs(dy) > 15:                      # 멀리 밀린 라벨엔 지시선
-            ax.annotate("", (x, y), textcoords="offset points", xytext=(dx * 0.70, dy * 0.70),
-                        arrowprops=dict(arrowstyle="-", lw=0.45, color=FAINT,
-                                        shrinkA=0, shrinkB=2), zorder=4)
+        lead = None
+        if abs(dx) + abs(dy) > 15:
+            lead = ax.annotate("", (x, y), textcoords="offset points",
+                               xytext=(dx * 0.70, dy * 0.70),
+                               arrowprops=dict(arrowstyle="-", lw=0.7, shrinkA=0, shrinkB=2),
+                               zorder=5)
+        px, py = ax.transData.transform((x, y))
+        drawn.append(dict(name=name, dot=dot, text=t, lead=lead, bb=bb, px=px, py=py))
 
-def bottom_list(fig, items, x0, y_top, w, y_bottom, fs=6.9):
+    # 가까운 것끼리 충돌로 보고 4색으로 칠한다 (이웃끼리는 반드시 다른 색)
+    R = 110.0
+    n = len(drawn)
+    adj = [set() for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            a, b = drawn[i], drawn[j]
+            near = ((a["px"] - b["px"]) ** 2 + (a["py"] - b["py"]) ** 2) ** 0.5 < R
+            if near or a["bb"].expanded(1.9, 2.4).overlaps(b["bb"]):
+                adj[i].add(j); adj[j].add(i)
+    color_of = [None] * n
+    used = [0] * len(LABEL_COLORS)
+    for i in sorted(range(n), key=lambda k: -len(adj[k])):        # 이웃 많은 것부터
+        taken = {color_of[j] for j in adj[i] if color_of[j] is not None}
+        free = [c for c in range(len(LABEL_COLORS)) if c not in taken]
+        pick = min(free, key=lambda c: used[c]) if free else min(
+            range(len(LABEL_COLORS)),
+            key=lambda c: (sum(1 for j in adj[i] if color_of[j] == c), used[c]))
+        color_of[i] = pick; used[pick] += 1
+
+    out = {}
+    for i, d in enumerate(drawn):
+        col = LABEL_COLORS[color_of[i]]
+        d["dot"].set_markerfacecolor(col)
+        d["text"].set_color(col)
+        if d["lead"] is not None:
+            d["lead"].arrow_patch.set_color(col)
+        out[d["name"]] = col
+    return out
+
+def bottom_list(fig, items, x0, y_top, w, y_bottom, fs=6.9, colors=None):
     """쪽 하단에 이름 + 특징 목록. 칸 수와 글자 크기를 자동으로 맞춘다."""
     entries = [(n, " · ".join(FEATS.get(n, []))) for n, _, _ in items]
     avail = y_top - y_bottom
@@ -166,17 +204,22 @@ def bottom_list(fig, items, x0, y_top, w, y_bottom, fs=6.9):
         gutter = 0.018
         f_name, f_body = (fs + 1.3) * scale, fs * scale
         l_name, l_body, l_gap = 0.0128 * scale, 0.0108 * scale, 0.0072 * scale
-        wrap = max(16, int((cw - gutter) * 118 / scale))
+        wrap = max(16, int((cw - gutter - 0.011) * 118 / scale))
         worst = 0.0
         for c in range(cols):
             cx, y = x0 + c * cw, y_top
             for name, body in entries[c * per:(c + 1) * per]:
                 if not measure_only:
-                    fig.text(cx, y, name, fontsize=f_name, weight="bold", color=INK, va="top")
+                    col = (colors or {}).get(name)
+                    if col:
+                        fig.text(cx, y - 0.0026, "\u25cf", fontsize=f_name * 0.62,
+                                 color=col, va="top")
+                    fig.text(cx + 0.011, y, name, fontsize=f_name, weight="bold",
+                             color=INK, va="top")
                 y -= l_name
                 for ln in textwrap.wrap(body, width=wrap) or [""]:
                     if not measure_only:
-                        fig.text(cx, y, ln, fontsize=f_body, color=INK2, va="top")
+                        fig.text(cx + 0.011, y, ln, fontsize=f_body, color=INK2, va="top")
                     y -= l_body
                 y -= l_gap
             worst = max(worst, y_top - y)
@@ -214,7 +257,7 @@ def make_page(pdf, key, title, unit, view, fs, ms):
     ax = fig.add_axes([0.045 + (max_w - wide) / 2, top - h, wide, h])
     ax.set_facecolor(SEA)
     m = draw_base(ax, view)
-    place_labels(fig, ax, m, items, fs, ms)
+    colors = place_labels(fig, ax, m, items, fs, ms)
 
     # 구분선 + 하단 특징
     div = top - h - 0.024                              # 구분선을 지도 바로 아래에
@@ -222,7 +265,7 @@ def make_page(pdf, key, title, unit, view, fs, ms):
     fig.text(0.045, div - 0.009, "지역별 특징", fontsize=8, weight="bold", color=INK2, va="top")
     fig.text(0.955, div - 0.009, "학습지 본문 기준 (각주 제외)", fontsize=6.6, color=FAINT,
              ha="right", va="top")
-    bottom_list(fig, items, 0.045, div - 0.030, 0.91, 0.042)
+    bottom_list(fig, items, 0.045, div - 0.030, 0.91, 0.042, colors=colors)
 
     fig.text(0.045, 0.021, "지도: Natural Earth · GSHHG (public domain) · 국내 행정경계 통계청 SGIS  |  2026 지역이해 암기",
              fontsize=6.4, color=FAINT)
