@@ -550,10 +550,20 @@ const ITEMS = [
 
 ];
 
-; }
+
 
 </script>
 <script>
+window.onerror = function(msg, src, line, col, err){
+  var box = document.getElementById("app") || document.body;
+  box.innerHTML = '<div style="border:1.5px solid #B0512C;background:#F7EAE3;padding:16px;' +
+    'border-radius:2px;font:400 13px/1.6 sans-serif;color:#1F1B16">' +
+    '<b style="display:block;margin-bottom:6px;color:#B0512C">문제가 생겼습니다</b>' +
+    '<div style="font-family:monospace;font-size:12px;word-break:break-all">' +
+    String(msg) + '<br>(' + line + ':' + col + ')</div>' +
+    '<div style="margin-top:10px;color:#5C554A">이 내용을 그대로 알려주시면 고쳐드리겠습니다.</div></div>';
+};
+
 /* ---------- 저장소 ---------- */
 const LS = "jiri-quiz-v1";
 let store = {};
@@ -827,7 +837,13 @@ function render(){
     const input = document.getElementById("ans");
     input.focus();
     const submit = ()=>answerName(input.value);
-    input.onkeydown = e => { if(e.key==="Enter") submit(); };
+    input.onkeydown = e => {
+      if(e.key !== "Enter") return;
+      if(e.isComposing || e.keyCode === 229) return;   // 한글 조합을 확정하는 Enter는 흘려보냄
+      e.preventDefault();
+      e.stopPropagation();                              // 이 Enter가 '다음 문제'까지 누르지 않도록
+      submit();
+    };
     document.getElementById("sub").onclick = submit;
     document.getElementById("skip").onclick = ()=>answerName("");
   } else {
@@ -932,7 +948,13 @@ function wireNext(){
   b.focus();
   b.scrollIntoView({block:"nearest", behavior:"smooth"});
   b.onclick = ()=>{ quiz.at++; document.onkeydown=null; quiz.at<quiz.qs.length ? render() : result(); };
-  document.onkeydown = e=>{ if(e.key==="Enter"){ e.preventDefault(); b.click(); } };
+  document.onkeydown = null;
+  setTimeout(()=>{                                       // 방금 누른 Enter가 이 핸들러에 닿지 않게
+    document.onkeydown = e=>{
+      if(e.key!=="Enter" || e.isComposing || e.keyCode===229) return;
+      e.preventDefault(); b.click();
+    };
+  }, 0);
 }
 
 /* ---------- 결과 ---------- */

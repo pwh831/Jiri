@@ -23,11 +23,35 @@ for p in paths:
     uri = "data:image/png;base64," + base64.b64encode(open(full, "rb").read()).decode()
     items = items.replace(f'"{p}"', f'"{uri}"')
 
-items = re.sub(r'if \(typeof module.*?\}\n?', '', items, flags=re.S)
+# module.exports 줄 제거 (줄 전체를 지운다 — 예전에 정규식이 줄을 반쯤 잘라
+# 문법 오류를 만든 적이 있어, 아래에서 node로 반드시 검사한다)
+items = re.sub(r'^.*typeof module.*$', '', items, flags=re.M)
 
 single = html.replace('<script src="data/items.js"></script>', "<script>\n" + items + "\n</script>")
 if 'src="data/items.js"' in single or "assets/maps/" in single:
     sys.exit("외부 파일 참조가 남아 있습니다.")
+
+# ── 합친 결과가 실제로 실행 가능한지 검사 ──────────────────────
+import subprocess, tempfile, shutil
+scripts = re.findall(r"<script>(.*?)</script>", single, flags=re.S)
+if len(scripts) < 2:
+    sys.exit("script 블록을 찾지 못했습니다.")
+node = shutil.which("node") or shutil.which("bun")
+if node:
+    for n, code in enumerate(scripts, 1):
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as f:
+            f.write(code); tmp = f.name
+        r = subprocess.run([node, "--check", tmp], capture_output=True, text=True)
+        os.unlink(tmp)
+        if r.returncode != 0:
+            sys.exit(f"script 블록 {n}에 문법 오류가 있습니다:\n{r.stderr}")
+    print(f"문법 검사 통과 (script 블록 {len(scripts)}개)")
+else:
+    print("경고: node/bun 이 없어 문법 검사를 건너뜁니다.")
+
+for need in ("const ITEMS", "const UNITS", "const MAPS", "function home()"):
+    if need not in single:
+        sys.exit(f"'{need}' 가 결과물에 없습니다.")
 
 open(OUT, "w", encoding="utf-8").write(single)
 print(f"{os.path.basename(OUT)} — {len(paths)}장의 지도 포함, {os.path.getsize(OUT):,} bytes")
