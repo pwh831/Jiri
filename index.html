@@ -87,6 +87,22 @@
         padding:14px 16px;font:400 16px/1.6 var(--serif);color:var(--ink)}
   .opt.name span{font:600 16px var(--sans)}
 
+  /* O·X 판별 */
+  .card{border:1px solid var(--rule2);background:var(--card)}
+  .card .who{padding:11px 16px;border-bottom:1px solid var(--rule2);
+        font:700 17px var(--serif);letter-spacing:-.01em}
+  .card .who em{float:right;font:400 11px var(--mono);font-style:normal;color:var(--faint);
+        line-height:1.9;letter-spacing:.06em}
+  .card .stmt{padding:18px 16px;font:400 16px/1.65 var(--serif);color:var(--ink)}
+  .oxrow{display:flex;gap:9px}
+  .oxrow .btn{flex:1}
+  .btn.moss{background:var(--moss)}
+  .oxjudge{margin-top:14px;padding:13px 16px;border-left:3px solid var(--rule2);
+        background:var(--card);font-size:13.5px;line-height:1.7;color:var(--ink2)}
+  .oxjudge b{color:var(--ink);font-weight:700}
+  .oxjudge.ok{border-left-color:var(--moss)}
+  .oxjudge.no{border-left-color:var(--verm)}
+
   /* 특징 떠올리기 */
   .recall{border:1px solid var(--rule2);background:var(--card);padding:26px 20px;text-align:center}
   .recall .nm{font:700 31px/1.25 var(--serif);letter-spacing:-.01em}
@@ -300,17 +316,19 @@ const UNITOF   = Object.fromEntries(CATS.map(c=>[c.key,UNITS.find(u=>u.id===c.un
 const KIND = {peninsula:"반도", island:"섬", sea:"바다", lake:"호수", strait:"해협", ocean:"바다",
               sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역"};
 const TYPES = [
-  {key:"both",   label:"혼합",        hint:"네 유형을 섞어서"},
+  {key:"both",   label:"혼합",        hint:"다섯 유형을 섞어서"},
   {key:"name",   label:"지도 → 지명",  hint:"지도 보고 이름 쓰기"},
   {key:"feat",   label:"지명 → 특징",  hint:"특징 고르기"},
   {key:"rfeat",  label:"특징 → 지명",  hint:"설명 보고 지역 맞히기"},
+  {key:"ox",     label:"O·X 판별",     hint:"서술이 맞는지 가려내기"},
   {key:"recall", label:"특징 떠올리기", hint:"보지 않고 떠올린 뒤 확인"}
 ];
 const countOf = k => ITEMS.filter(i=>i.category===k).length;
+const NOTECOUNT = ITEMS.reduce((t,i)=>t+(i.notes||[]).length, 0);
 const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
 
 /* ---------- 세션 상태 ---------- */
-let cfg = { cats: CATS.map(c=>c.key), types:"both", count:20, order:"weak" };
+let cfg = { cats: CATS.map(c=>c.key), types:"both", count:20, order:"weak", notes:false };
 let quiz = null;
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -374,13 +392,18 @@ function home(){
     <div class="grid g4" id="counts" style="margin-bottom:9px">
       ${[10,20,30,999].map(n=>`<button class="chip ${cfg.count===n?"on":""} ${n===999?"":"mono"}" data-n="${n}">${n===999?"전체":n}</button>`).join("")}
     </div>
-    <div class="grid g2" id="orders">
+    <div class="grid g2" id="orders" style="margin-bottom:9px">
       <button class="chip ${cfg.order==="weak"?"on":""}" data-o="weak">오답 우선</button>
       <button class="chip ${cfg.order==="rand"?"on":""}" data-o="rand">랜덤</button>
     </div>
+    <button class="chip ${cfg.notes?"on":""}" id="notetog" style="width:100%;text-align:left;min-height:50px;line-height:1.35">
+      각주 내용 포함 <n>${NOTECOUNT}</n>
+      <small style="display:block;font:400 11px var(--sans);color:${cfg.notes?"var(--water-m)":"var(--faint)"};margin-top:2px">
+        각주는 원칙적으로 시험 범위가 아니지만 기출에 나온 적이 있습니다</small>
+    </button>
   </div>
 
-  ${picked && cfg.types!=="name" && !ITEMS.some(i=>cfg.cats.includes(i.category)&&i.features.length)
+  ${picked && cfg.types!=="name" && !ITEMS.some(i=>cfg.cats.includes(i.category)&&feats(i).length)
     ? `<div class="block" style="margin-top:-12px"><div class="hint" style="color:var(--verm)">
         고른 범위에는 학습지에 적힌 특징이 없어 '지도 → 지명'으로만 출제됩니다.</div></div>` : ""}
   <div class="actions stack">
@@ -417,6 +440,7 @@ function home(){
   document.getElementById("types").onclick  = e=>{ const el=e.target.closest(".chip"); if(el){cfg.types=el.dataset.t; home();} };
   document.getElementById("counts").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.count=+el.dataset.n; home();} };
   document.getElementById("orders").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.order=el.dataset.o; home();} };
+  document.getElementById("notetog").onclick = ()=>{ cfg.notes = !cfg.notes; buildOwners(); home(); };
   document.getElementById("start").onclick  = ()=>begin(pool());
   const wo = document.getElementById("wrongOnly");
   if(wo) wo.onclick = ()=>begin(ITEMS.filter(i=>{ const s=store[i.id]; return s && s.wrong>0 && s.streak<3; }), true);
@@ -446,25 +470,56 @@ function begin(list, isReview){
   render();
 }
 
+/* 출제 대상 서술: 본문(features) + '각주 포함'을 켰을 때만 각주(notes) */
+function feats(i){
+  return cfg.notes ? [...(i.features||[]), ...(i.notes||[])] : (i.features||[]);
+}
 /* 어느 항목에 어떤 특징이 몇 번 나오는지 (중복 특징 판별용) */
-const FEATOWNERS = (()=>{ const m={};
-  ITEMS.forEach(i=>(i.features||[]).forEach(f=>{ (m[norm(f)]=m[norm(f)]||[]).push(i.id); }));
-  return m; })();
+let FEATOWNERS = {};
+function buildOwners(){
+  FEATOWNERS = {};
+  ITEMS.forEach(i=>feats(i).forEach(f=>{ (FEATOWNERS[norm(f)]=FEATOWNERS[norm(f)]||[]).push(i.id); }));
+}
+buildOwners();
 
 function makeQ(item){
-  const hasFeat = (item.features||[]).length > 0;
+  const hasFeat = feats(item).length > 0;
   let type = cfg.types;
-  if (type === "both") type = ["name","feat","rfeat","recall"][Math.random()*4|0];
+  if (type === "both") type = ["name","feat","rfeat","ox","recall"][Math.random()*5|0];
   if (!hasFeat && type !== "name") type = "name";
   if (type === "feat")   return {type, item, ...buildChoices(item)};
   if (type === "rfeat")  return {type, item, ...buildReverse(item)};
+  if (type === "ox"){
+    const q = buildOX(item);
+    return q ? {type, item, ...q} : {type:"feat", item, ...buildChoices(item)};
+  }
   return {type, item};                       // name · recall
+}
+
+/* O·X 판별: 절반은 그 지역의 실제 서술, 절반은 다른 지역의 서술을 가져다 붙인다.
+ * 기출의 주력 형식(자료 속 오류 찾기 / 진술 O·X 채점)을 연습하기 위한 유형. */
+function buildOX(item){
+  const mine = feats(item);
+  const mineSet = new Set(mine.map(norm));
+  const self = norm(item.name);
+  if (Math.random() < 0.5){
+    return {stmt: mine[Math.random()*mine.length|0], truth:true, owner:item.name};
+  }
+  const take = arr => arr.filter(i=>i.id!==item.id && norm(i.name)!==self)
+                        .flatMap(i=>feats(i).map(f=>({f, from:i.name})))
+                        .filter(o=>!mineSet.has(norm(o.f)));
+  let cand = shuffle(take(ITEMS.filter(i=>i.category===item.category)));
+  if(!cand.length) cand = shuffle(take(ITEMS.filter(i=>i.scope===item.scope)));
+  if(!cand.length) cand = shuffle(take(ITEMS));
+  if(!cand.length) return mine.length ? {stmt: mine[0], truth:true, owner:item.name} : null;
+  return {stmt: cand[0].f, truth:false, owner: cand[0].from};
 }
 
 /* 특징 → 지명: 단서로 쓸 특징은 그 항목에만 있는 것을 먼저 고른다 */
 function buildReverse(item){
-  const uniq = item.features.filter(f=>FEATOWNERS[norm(f)].length === 1);
-  const clue = (uniq.length ? uniq : item.features)[Math.random()*(uniq.length||item.features.length)|0];
+  const all = feats(item);
+  const uniq = all.filter(f=>FEATOWNERS[norm(f)].length === 1);
+  const clue = (uniq.length ? uniq : all)[Math.random()*(uniq.length||all.length)|0];
   const owners = new Set(FEATOWNERS[norm(clue)]);          // 같은 특징을 가진 지역은 보기에서 제외
   const self = norm(item.name);
   const pick = arr => shuffle(arr.filter(i=>
@@ -482,11 +537,12 @@ function buildReverse(item){
 
 /* 5지선다 보기 생성: 같은 카테고리 우선 → 같은 scope → 전체 */
 function buildChoices(item){
-  const mine = new Set(item.features.map(norm));
-  const answer = item.features[Math.random()*item.features.length|0];
+  const all = feats(item);
+  const mine = new Set(all.map(norm));
+  const answer = all[Math.random()*all.length|0];
   const self = norm(item.name);
   const take = arr => arr.filter(i=>i.id!==item.id && norm(i.name)!==self)
-                        .flatMap(i=>(i.features||[]).map(f=>({f, from:i.name})))
+                        .flatMap(i=>feats(i).map(f=>({f, from:i.name})))
                         .filter(o=>!mine.has(norm(o.f)));
   let pool = shuffle(take(ITEMS.filter(i=>i.category===item.category)));
   const seen = new Set([norm(answer)]);
@@ -534,6 +590,7 @@ function render(){
   const q = quiz.qs[quiz.at], it = q.item;
   const kind = KIND[it.category] || "지역";
   if (q.type === "rfeat")  return renderReverse(q);
+  if (q.type === "ox")     return renderOX(q);
   if (q.type === "recall") return renderRecall(q);
 
   if (q.type === "name"){
@@ -606,6 +663,62 @@ function renderReverse(q){
   document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) answerReverse(+e.key-1); };
 }
 
+function renderOX(q){
+  const it = q.item;
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i></div>
+    <div class="q"><h2>다음 자료의 설명이<br><em>옳은지</em> 판단하세요</h2></div>
+    <div class="card" style="margin-top:14px">
+      <div class="who">${esc(it.name)}<em>O · X</em></div>
+      <div class="stmt">${esc(q.stmt)}</div>
+    </div>
+    <div class="hintrow" style="margin-top:10px"><span>키보드 O / X 또는 1 / 2</span><em>O·X</em></div>
+  </div>
+  <div class="actions oxrow">
+    <button class="btn verm" id="oxno">✗ 틀림<small>X</small></button>
+    <button class="btn moss" id="oxyes">✓ 옳음<small>O</small></button>
+  </div>`;
+  document.getElementById("oxyes").onclick = ()=>answerOX(true);
+  document.getElementById("oxno").onclick  = ()=>answerOX(false);
+  document.onkeydown = e=>{
+    if(e.isComposing) return;
+    const k = e.key.toLowerCase();
+    if(k==="o" || k==="1") answerOX(true);
+    if(k==="x" || k==="2") answerOX(false);
+  };
+}
+
+function answerOX(said){
+  const q = quiz.qs[quiz.at], it = q.item;
+  if(q.answered) return;
+  q.answered = true;
+  document.onkeydown = null;
+  const ok = (said === q.truth);
+  if(ok) quiz.right++;
+  record(it, ok);
+  quiz.log.push({item:it, ok, mine: said?"옳음":"틀림", type:"O·X"});
+  document.getElementById("oxyes").disabled = true;
+  document.getElementById("oxno").disabled  = true;
+
+  const why = q.truth
+    ? `이 설명은 <b>${esc(it.name)}</b>의 특징으로 학습지에 나온 문장입니다.`
+    : `이 설명은 <b>${esc(it.name)}</b>${josa(it.name,"이","가")} 아니라 <b>${esc(q.owner)}</b>의 특징입니다.`;
+  app.insertAdjacentHTML("beforeend", `
+    <div class="block" style="margin-top:22px">
+      <div class="oxjudge ${ok?"ok":"no"}">
+        ${ok?"맞혔습니다":"틀렸습니다"} · 정답은 <b>${q.truth?"옳음(O)":"틀림(X)"}</b><br>${why}
+      </div>
+      <div class="allfeat" style="margin-top:14px">
+        <lbl>${esc(it.name)} · 전체 특징</lbl>
+        <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
+      </div>
+    </div>
+    ${nextBtn()}`);
+  wireNext();
+}
+
 function renderRecall(q){
   const it = q.item;
   app.innerHTML = `
@@ -616,7 +729,7 @@ function renderRecall(q){
     <div class="recall">
       <div class="nm">${esc(it.name)}</div>
       <div class="ask">이 ${KIND[it.category]||"지역"}의 특징을 떠올려 보세요<br>
-        <em>${it.features.length}가지</em></div>
+        <em>${feats(it).length}가지</em></div>
     </div>
   </div>
   <div class="actions"><button class="btn" id="show">특징 보기<small>ENTER</small></button></div>`;
@@ -675,7 +788,14 @@ function record(item, ok){
   if(ok){ s.right++; s.streak++; } else { s.wrong++; s.streak = 0; }
   s.last = Date.now(); save();
 }
-const featList = it => it.features.map(f=>`<div class="feat"><i></i><span>${esc(f)}</span></div>`).join("");
+/* 받침 유무에 따라 조사 선택 (예: 원주시가 / 태백시가 · 광주광역시는) */
+function josa(word, withJong, without){
+  const last = String(word).replace(/\)\s*$/,"").slice(-1);
+  const code = last.charCodeAt(0);
+  if(code < 0xAC00 || code > 0xD7A3) return withJong;      // 한글이 아니면 보수적으로
+  return (code - 0xAC00) % 28 === 0 ? without : withJong;
+}
+const featList = it => feats(it).map(f=>`<div class="feat"><i></i><span>${esc(f)}</span></div>`).join("");
 
 function answerName(val){
   const q = quiz.qs[quiz.at], it = q.item;
@@ -694,13 +814,13 @@ function answerName(val){
   app.insertAdjacentHTML("beforeend", `
     <div class="block" style="margin-top:22px">
       <div class="ans ${ok?"":"no"}">
-        <div class="top" ${it.features.length?"":'style="border-bottom:0"'}>
+        <div class="top" ${feats(it).length?"":'style="border-bottom:0"'}>
           <lbl>ANSWER</lbl>
           <div><span class="name">${esc(it.name)}</span>${
             it.aliases && it.aliases.length ? `<span class="alias">${esc(it.aliases.join(" / "))}</span>` : ""}</div>
           ${val ? `<div class="mine">내 답 · <b>${esc(val)}</b></div>` : ""}
         </div>
-        ${it.features.length ? `<div class="feats"><lbl>FEATURES</lbl>
+        ${feats(it).length ? `<div class="feats"><lbl>FEATURES</lbl>
           <div class="stack" style="gap:7px">${featList(it)}</div></div>` : ""}
       </div>
     </div>
@@ -729,7 +849,7 @@ function answerFeat(idx){
     <div class="block" style="margin-top:22px">
       <div class="allfeat">
         <lbl>${esc(it.name)} · 전체 특징</lbl>
-        <div class="stack" style="gap:6px">${it.features.map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
+        <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
     ${nextBtn()}`);
@@ -754,7 +874,7 @@ function answerReverse(idx){
     <div class="block" style="margin-top:22px">
       <div class="allfeat">
         <lbl>${esc(it.name)} · 전체 특징</lbl>
-        <div class="stack" style="gap:6px">${it.features.map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
+        <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
     ${nextBtn()}`);
@@ -808,7 +928,7 @@ function result(){
     <div class="sec warn"><span>틀린 문제</span><i></i><em>${wrong.length}</em></div>
     ${wrong.map(l=>`<div class="wrongrow">
       <div class="l"><div class="nm">${esc(l.item.name)}</div>
-        <div class="ft">${esc(l.item.features[0]||"")}</div></div>
+        <div class="ft">${esc(feats(l.item)[0]||"")}</div></div>
       <div class="r"><k>MINE</k><v>${esc(l.mine)}</v></div>
     </div>`).join("")}
   </div>` : `<div class="block center">모두 맞혔습니다.</div>`}
