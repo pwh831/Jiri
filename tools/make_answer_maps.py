@@ -73,6 +73,15 @@ def draw_admin(ax, m, view):
 
 # ── 페이지 정의 ──────────────────────────────────────────────
 # (지역키, 큰제목, 단원, 지도설정, 글자크기, 점크기)
+# 쪽 하단에 덧붙일 학습지 본문 (특징표에 들어가지 않는 것)
+NOTES = {
+ "lakestrait": ("대륙의 경계 (25쪽)",
+   "아시아 ↔ 아프리카  아덴만 · 홍해 · 수에즈 지협          "
+   "아시아 ↔ 유럽  보스포루스 해협 · 캅카스 산맥 · 우랄 산맥\n"
+   "북아메리카 ↔ 남아메리카  파나마 지협                     "
+   "유럽 ↔ 아프리카  지브롤터 해협"),
+}
+
 PAGES = [
  ("peninsula",  "세계의 주요 반도",        "010", "world",       7.6, 22),
  ("island",     "세계의 주요 섬",          "010", "world",       7.6, 22),
@@ -241,7 +250,8 @@ def make_page(pdf, key, title, unit, view, fs, ms):
 
     # 머리글
     fig.text(0.045, 0.972, unit, fontsize=9.5, color=VERM, family="monospace", va="center")
-    fig.text(0.105, 0.9695, title, fontsize=19, weight="bold", color=INK, va="center")
+    tx = 0.105 + (0.038 if len(unit) > 4 else 0)      # "009 · 011" 처럼 긴 단원 번호 자리 확보
+    fig.text(tx, 0.9695, title, fontsize=19, weight="bold", color=INK, va="center")
     fig.text(0.955, 0.9705, f"{len(items)}곳", fontsize=9, color=FAINT, ha="right", va="center")
     fig.add_artist(plt.Line2D([0.045,0.955],[0.9555,0.9555], color=INK, lw=1.3))
     fig.add_artist(plt.Line2D([0.045,0.955],[0.9525,0.9525], color=INK, lw=0.5))
@@ -265,7 +275,17 @@ def make_page(pdf, key, title, unit, view, fs, ms):
     fig.text(0.045, div - 0.009, "지역별 특징", fontsize=8, weight="bold", color=INK2, va="top")
     fig.text(0.955, div - 0.009, "학습지 본문 기준 (각주 제외)", fontsize=6.6, color=FAINT,
              ha="right", va="top")
-    bottom_list(fig, items, 0.045, div - 0.030, 0.91, 0.042, colors=colors)
+    note = NOTES.get(key)
+    floor = 0.042
+    if note:
+        fig.add_artist(plt.Line2D([0.045,0.955],[0.104,0.104], color=RULE, lw=0.6))
+        fig.text(0.045, 0.094, note[0], fontsize=7.2, weight="bold", color=INK2, va="top")
+        y = 0.079
+        for ln in note[1].split("\n"):
+            fig.text(0.045, y, ln, fontsize=6.9, color=INK2, va="top")
+            y -= 0.0125
+        floor = 0.118
+    bottom_list(fig, items, 0.045, div - 0.030, 0.91, floor, colors=colors)
 
     fig.text(0.045, 0.021, "지도: Natural Earth · GSHHG (public domain) · 국내 행정경계 통계청 SGIS  |  2026 지역이해 암기",
              fontsize=6.4, color=FAINT)

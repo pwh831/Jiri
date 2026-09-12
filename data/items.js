@@ -232,17 +232,20 @@ const ITEMS = [
 { id:"hn25", map:"honam", num:25, scope:"korea", category:"honam", name:"나주시", aliases:["나주"],
   features:["광주·전남 혁신도시","배(지리적 표시제)","전주와 함께 전라도라는 지명의 유래가 된 도시"] },
 
-/* ===== 오대양 ===== */
+/* ===== 오대양 =====
+ * 학습지(23~25쪽)에는 대양별 서술이 없다. 지도 번호·이름과 대륙 경계 표뿐이고
+ * 바다 크기 비교는 각주 76) 이라 시험 범위가 아니다.
+ * 따라서 특징을 비워 두고 '지도 → 이름' 문제로만 낸다. */
 { id:"oc1", map:"world_ocean", num:1, scope:"world", category:"ocean", name:"북극해", aliases:["북빙양"],
-  features:["북극 주변에 위치한 바다","아시아·유럽·북아메리카 대륙으로 둘러싸여 있음"] },
+  features:[] },
 { id:"oc2", map:"world_ocean", num:2, scope:"world", category:"ocean", name:"인도양", aliases:[],
-  features:["아프리카 동쪽과 오스트레일리아 서쪽 사이","아라비아해·벵골만·홍해·페르시아만이 부속해"] },
+  features:[] },
 { id:"oc3", map:"world_ocean", num:3, scope:"world", category:"ocean", name:"태평양", aliases:[],
-  features:["세계에서 가장 큰 바다","아시아·오세아니아와 아메리카 사이","남중국해·동중국해·오호츠크해가 부속해"] },
+  features:[] },
 { id:"oc4", map:"world_ocean", num:4, scope:"world", category:"ocean", name:"대서양", aliases:[],
-  features:["아메리카와 유럽·아프리카 사이","북해·발트해·지중해·흑해·카리브해·멕시코만이 부속해"] },
+  features:[] },
 { id:"oc5", map:"world_ocean", num:5, scope:"world", category:"ocean", name:"남극해", aliases:["남빙양"],
-  features:["남극 대륙을 둘러싼 바다","오대양 중 가장 남쪽에 위치"] },
+  features:[] },
 
 /* ===== 세계의 주요 반도와 섬 ===== */
 { id:"wp01", map:"world_pen", num:1, scope:"world", category:"peninsula", name:"스칸디나비아반도", aliases:["스칸디나비아 반도"],

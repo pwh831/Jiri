@@ -380,6 +380,9 @@ function home(){
     </div>
   </div>
 
+  ${picked && cfg.types!=="name" && !ITEMS.some(i=>cfg.cats.includes(i.category)&&i.features.length)
+    ? `<div class="block" style="margin-top:-12px"><div class="hint" style="color:var(--verm)">
+        고른 범위에는 학습지에 적힌 특징이 없어 '지도 → 지명'으로만 출제됩니다.</div></div>` : ""}
   <div class="actions stack">
     <button class="btn" id="start" ${picked?"":"disabled"}>시작하기<small>${
       picked ? (cfg.count===999?picked+"문항":Math.min(cfg.count,picked)+"문항") : "범위를 고르세요"}</small></button>
@@ -691,13 +694,14 @@ function answerName(val){
   app.insertAdjacentHTML("beforeend", `
     <div class="block" style="margin-top:22px">
       <div class="ans ${ok?"":"no"}">
-        <div class="top">
+        <div class="top" ${it.features.length?"":'style="border-bottom:0"'}>
           <lbl>ANSWER</lbl>
           <div><span class="name">${esc(it.name)}</span>${
             it.aliases && it.aliases.length ? `<span class="alias">${esc(it.aliases.join(" / "))}</span>` : ""}</div>
           ${val ? `<div class="mine">내 답 · <b>${esc(val)}</b></div>` : ""}
         </div>
-        <div class="feats"><lbl>FEATURES</lbl><div class="stack" style="gap:7px">${featList(it)}</div></div>
+        ${it.features.length ? `<div class="feats"><lbl>FEATURES</lbl>
+          <div class="stack" style="gap:7px">${featList(it)}</div></div>` : ""}
       </div>
     </div>
     ${nextBtn()}`);
