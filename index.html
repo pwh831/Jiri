@@ -248,9 +248,9 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">2026 · 131 ITEMS</div>
+  <div class="eyebrow" id="eyebrow">2026 · 지역 이해</div>
   <h1>지역이해 암기</h1>
-  <p class="sub">지도에서 지역을 찾고, 특징을 골라 외웁니다.</p>
+  <p class="sub">지도에서 지역을 찾고, 개념과 특징을 골라 외웁니다.</p>
   <div class="dbl"></div><div class="dbl"></div>
   <div id="app" style="margin-top:26px"></div>
 </div>
@@ -314,7 +314,11 @@ function judge(input, item){
 const CATLABEL = Object.fromEntries(CATS.map(c=>[c.key,c.label]));
 const UNITOF   = Object.fromEntries(CATS.map(c=>[c.key,UNITS.find(u=>u.id===c.unit)]));
 const KIND = {peninsula:"반도", island:"섬", sea:"바다", lake:"호수", strait:"해협", ocean:"바다",
-              sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역"};
+              sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역",
+              term:"용어", tradition:"지방"};
+/* 지도가 없는 항목(개념·용어, 전통적 지역 구분)은 '지도 → 지명'으로 낼 수 없다 */
+const hasMap = i => !!(i.map && MAPS[i.map]);
+const numOf  = i => hasMap(i) && MAPS[i.map].labeled ? `<em>${i.num}번</em>` : "";
 const TYPES = [
   {key:"both",   label:"혼합",        hint:"다섯 유형을 섞어서"},
   {key:"name",   label:"지도 → 지명",  hint:"지도 보고 이름 쓰기"},
@@ -325,6 +329,7 @@ const TYPES = [
 ];
 const countOf = k => ITEMS.filter(i=>i.category===k).length;
 const NOTECOUNT = ITEMS.reduce((t,i)=>t+(i.notes||[]).length, 0);
+document.getElementById("eyebrow").textContent = `2026 · ${ITEMS.length} ITEMS`;
 const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
 
 /* ---------- 세션 상태 ---------- */
@@ -450,7 +455,8 @@ function home(){
 }
 
 function pool(){
-  let p = ITEMS.filter(i=>cfg.cats.includes(i.category));
+  let p = ITEMS.filter(i=>cfg.cats.includes(i.category))
+               .filter(i=>hasMap(i) || feats(i).length);   // 지도도 특징도 없으면 낼 문제가 없다
   if(!p.length) return p;
   if(cfg.order==="weak"){
     p = p.map(i=>{
@@ -484,9 +490,14 @@ buildOwners();
 
 function makeQ(item){
   const hasFeat = feats(item).length > 0;
+  const mapped  = hasMap(item);
   let type = cfg.types;
-  if (type === "both") type = ["name","feat","rfeat","ox","recall"][Math.random()*5|0];
+  if (type === "both"){
+    const menu = mapped ? ["name","feat","rfeat","ox","recall"] : ["feat","rfeat","ox","recall"];
+    type = menu[Math.random()*menu.length|0];
+  }
   if (!hasFeat && type !== "name") type = "name";
+  if (!mapped && type === "name") type = hasFeat ? "rfeat" : "name";
   if (type === "feat")   return {type, item, ...buildChoices(item)};
   if (type === "rfeat")  return {type, item, ...buildReverse(item)};
   if (type === "ox"){
@@ -631,7 +642,7 @@ function render(){
     <div class="block">${headHTML()}</div>
     <div class="block">
       <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i>
-        ${MAPS[it.map].labeled?`<em>${it.num}번</em>`:""}</div>
+        ${numOf(it)}</div>
       <div class="q"><h2><mark>${esc(it.name)}</mark>에 대한 설명으로<br>옳은 것은?</h2></div>
     </div>
     <div class="opts" id="opts">
@@ -725,7 +736,7 @@ function renderRecall(q){
   <div class="block">${headHTML()}</div>
   <div class="block">
     <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i>
-      ${MAPS[it.map].labeled?`<em>${it.num}번</em>`:""}</div>
+      ${numOf(it)}</div>
     <div class="recall">
       <div class="nm">${esc(it.name)}</div>
       <div class="ask">이 ${KIND[it.category]||"지역"}의 특징을 떠올려 보세요<br>

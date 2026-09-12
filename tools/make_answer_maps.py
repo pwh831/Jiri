@@ -30,10 +30,16 @@ LABEL_COLORS = ["#1E6FC4", "#C4551E", "#1B8A3E", "#B03070"]
 
 # ── 학습지 특징 불러오기 ──────────────────────────────────────
 def load_features():
+    """items.js 의 항목별 features 만 읽는다.
+    notes(학습지 각주)는 시험 범위가 아니므로 정답 지도에 넣지 않는다.
+    지도가 없는 항목(개념·용어, 전통적 지역 구분)은 places.py 에 좌표가 없어 자연히 빠진다."""
     src = open(os.path.join(ROOT, "data", "items.js"), encoding="utf-8").read()
     out = {}
-    for m in re.finditer(r'name:"([^"]+)", aliases:\[[^\]]*\],?\s*(?:marker:\{[^}]*\},)?\s*\n?\s*features:\[(.*?)\]\s*\}', src, re.S):
-        out[m.group(1)] = re.findall(r'"([^"]+)"', m.group(2))
+    for blk in src.split('{ id:"')[1:]:
+        nm = re.search(r'name:"([^"]+)"', blk)
+        ft = re.search(r'features:\[(.*?)\]', blk, re.S)
+        if nm and ft:
+            out[nm.group(1)] = re.findall(r'"([^"]+)"', ft.group(1))
     return out
 FEATS = load_features()
 
