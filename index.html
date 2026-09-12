@@ -316,6 +316,17 @@ const UNITOF   = Object.fromEntries(CATS.map(c=>[c.key,UNITS.find(u=>u.id===c.un
 const KIND = {peninsula:"반도", island:"섬", sea:"바다", lake:"호수", strait:"해협", ocean:"바다",
               sido:"시·도", sudogwon:"지역", chungcheong:"지역", gangwon:"지역", honam:"지역",
               term:"용어", tradition:"지방"};
+/* 받침 유무에 따라 조사 선택 (예: 원주시가 / 태백시가 · 광주광역시는) */
+function josa(word, withJong, without){
+  const last = String(word).replace(/[)\s·]+$/,"").slice(-1);
+  const code = last.charCodeAt(0);
+  if(code < 0xAC00 || code > 0xD7A3) return withJong;      // 한글이 아니면 보수적으로
+  return (code - 0xAC00) % 28 === 0 ? without : withJong;
+}
+const isOverview = c => /_ov$/.test(c);
+const kindOf  = c => KIND[c] || (isOverview(c) ? "주제" : "지역");
+/* '특징'이라는 말이 안 맞는 갈래가 있다 (용어는 뜻, 개관은 내용) */
+const whatOf  = c => c === "term" ? "뜻과 예" : isOverview(c) ? "내용" : "특징";
 /* 지도가 없는 항목(개념·용어, 전통적 지역 구분)은 '지도 → 지명'으로 낼 수 없다 */
 const hasMap = i => !!(i.map && MAPS[i.map]);
 const numOf  = i => hasMap(i) && MAPS[i.map].labeled ? `<em>${i.num}번</em>` : "";
@@ -371,11 +382,29 @@ function areaHTML(a){
     ${us.map(unitHTML).join("")}
   </div>`;
 }
+/* 고른 범위와 고른 유형이 안 맞을 때의 안내 */
+function warnHTML(picked){
+  if(!picked) return "";
+  const inRange = ITEMS.filter(i=>cfg.cats.includes(i.category));
+  const msg =
+    cfg.types === "name" && !inRange.some(hasMap)
+      ? "고른 범위에는 지도가 없어 '지도 → 지명'으로 낼 문제가 없습니다. 다른 유형을 골라 주세요."
+    : cfg.types !== "name" && !inRange.some(i=>feats(i).length)
+      ? "고른 범위에는 학습지에 적힌 특징이 없어 '지도 → 지명'으로만 출제됩니다."
+    : cfg.types === "name" && inRange.some(i=>!hasMap(i))
+      ? `개념·용어 · 전통 구분 · 개관은 지도가 없어 이 유형에서는 빠집니다(${inRange.filter(hasMap).length}항목 출제).`
+    : "";
+  if(!msg) return "";
+  const warn = msg.includes("빠집니다") ? "var(--faint)" : "var(--verm)";
+  return `<div class="block" style="margin-top:-12px"><div class="hint" style="color:${warn}">${msg}</div></div>`;
+}
+
 function home(){
   const done = Object.keys(store).length;
   const mastered = Object.values(store).filter(s=>s.streak>=3).length;
   const wrong = ITEMS.filter(i=>{ const s=store[i.id]; return s && s.wrong>0 && s.streak<3; }).length;
-  const picked = ITEMS.filter(i=>cfg.cats.includes(i.category)).length;
+  const picked   = ITEMS.filter(i=>cfg.cats.includes(i.category)).length;
+  const playable = pool().length;
 
   app.innerHTML = `
   <div class="block">
@@ -408,12 +437,10 @@ function home(){
     </button>
   </div>
 
-  ${picked && cfg.types!=="name" && !ITEMS.some(i=>cfg.cats.includes(i.category)&&feats(i).length)
-    ? `<div class="block" style="margin-top:-12px"><div class="hint" style="color:var(--verm)">
-        고른 범위에는 학습지에 적힌 특징이 없어 '지도 → 지명'으로만 출제됩니다.</div></div>` : ""}
+  ${warnHTML(picked)}
   <div class="actions stack">
-    <button class="btn" id="start" ${picked?"":"disabled"}>시작하기<small>${
-      picked ? (cfg.count===999?picked+"문항":Math.min(cfg.count,picked)+"문항") : "범위를 고르세요"}</small></button>
+    <button class="btn" id="start" ${playable?"":"disabled"}>시작하기<small>${
+      playable ? (cfg.count===999?playable+"문항":Math.min(cfg.count,playable)+"문항") : "낼 문제가 없습니다"}</small></button>
     ${wrong?`<button class="btn2 verm" id="wrongOnly">오답 노트 다시 풀기 <span class="mono">${wrong}</span></button>`:""}
     <button class="btn2" id="reset" style="border:0;color:var(--faint);font-size:12.5px;min-height:36px">기록 초기화</button>
   </div>`;
@@ -457,6 +484,8 @@ function home(){
 function pool(){
   let p = ITEMS.filter(i=>cfg.cats.includes(i.category))
                .filter(i=>hasMap(i) || feats(i).length);   // 지도도 특징도 없으면 낼 문제가 없다
+  // '지도 → 지명'만 고른 경우 지도가 있는 항목만 낸다 (개념·용어, 전통 구분, 개관은 제외)
+  if(cfg.types === "name") p = p.filter(hasMap);
   if(!p.length) return p;
   if(cfg.order==="weak"){
     p = p.map(i=>{
@@ -599,7 +628,7 @@ function mapHTML(item){
 let zoom = 100;
 function render(){
   const q = quiz.qs[quiz.at], it = q.item;
-  const kind = KIND[it.category] || "지역";
+  const kind = kindOf(it.category);
   if (q.type === "rfeat")  return renderReverse(q);
   if (q.type === "ox")     return renderOX(q);
   if (q.type === "recall") return renderRecall(q);
@@ -662,7 +691,7 @@ function renderReverse(q){
   <div class="block">${headHTML()}</div>
   <div class="block">
     <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i></div>
-    <div class="q"><h2>다음 설명에 해당하는 ${KIND[it.category]||"지역"}은?</h2></div>
+    <div class="q"><h2>다음 설명에 해당하는 ${kindOf(it.category)}${josa(kindOf(it.category),"은","는")}?</h2></div>
     <div class="clue">${esc(q.clue)}</div>
   </div>
   <div class="opts" id="opts">
@@ -722,7 +751,7 @@ function answerOX(said){
         ${ok?"맞혔습니다":"틀렸습니다"} · 정답은 <b>${q.truth?"옳음(O)":"틀림(X)"}</b><br>${why}
       </div>
       <div class="allfeat" style="margin-top:14px">
-        <lbl>${esc(it.name)} · 전체 특징</lbl>
+        <lbl>${esc(it.name)} · 전체 ${whatOf(it.category)}</lbl>
         <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
@@ -739,7 +768,7 @@ function renderRecall(q){
       ${numOf(it)}</div>
     <div class="recall">
       <div class="nm">${esc(it.name)}</div>
-      <div class="ask">이 ${KIND[it.category]||"지역"}의 특징을 떠올려 보세요<br>
+      <div class="ask">이 ${kindOf(it.category)}의 ${whatOf(it.category)}${josa(whatOf(it.category),"을","를")} 떠올려 보세요<br>
         <em>${feats(it).length}가지</em></div>
     </div>
   </div>
@@ -799,13 +828,6 @@ function record(item, ok){
   if(ok){ s.right++; s.streak++; } else { s.wrong++; s.streak = 0; }
   s.last = Date.now(); save();
 }
-/* 받침 유무에 따라 조사 선택 (예: 원주시가 / 태백시가 · 광주광역시는) */
-function josa(word, withJong, without){
-  const last = String(word).replace(/\)\s*$/,"").slice(-1);
-  const code = last.charCodeAt(0);
-  if(code < 0xAC00 || code > 0xD7A3) return withJong;      // 한글이 아니면 보수적으로
-  return (code - 0xAC00) % 28 === 0 ? without : withJong;
-}
 const featList = it => feats(it).map(f=>`<div class="feat"><i></i><span>${esc(f)}</span></div>`).join("");
 
 function answerName(val){
@@ -859,7 +881,7 @@ function answerFeat(idx){
   app.insertAdjacentHTML("beforeend", `
     <div class="block" style="margin-top:22px">
       <div class="allfeat">
-        <lbl>${esc(it.name)} · 전체 특징</lbl>
+        <lbl>${esc(it.name)} · 전체 ${whatOf(it.category)}</lbl>
         <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
@@ -884,7 +906,7 @@ function answerReverse(idx){
   app.insertAdjacentHTML("beforeend", `
     <div class="block" style="margin-top:22px">
       <div class="allfeat">
-        <lbl>${esc(it.name)} · 전체 특징</lbl>
+        <lbl>${esc(it.name)} · 전체 ${whatOf(it.category)}</lbl>
         <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
