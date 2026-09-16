@@ -127,6 +127,20 @@ python3 tools/extract_maps.py <학습지 원본 PDF>
 python3 tools/fit_markers.py <옛 지도> <새 지도> --write
 ```
 
+## 요약 PDF (굿노트용)
+
+`docs/지역이해-요약.pdf` — **시험 범위만** 추린 13쪽짜리 요약본.
+
+```bash
+python3 tools/make_summary.py
+```
+
+- 단원 → 갈래 → 항목 순으로, 지도가 있는 갈래는 지도를 먼저 싣고 번호별 목록을 붙입니다
+- 범위 밖 단원(005 호남)과 각주는 들어가지 않습니다
+- 글자가 벡터로 남아 굿노트에서 확대해도 깨지지 않고 검색도 됩니다
+- HTML을 만들어 크로미움 헤드리스로 인쇄합니다. 나눔고딕은 길이가 0인 VTT 표가 있어
+  크로미움이 통째로 거부하므로, 쓰는 글자만 남긴 부분집합을 만들어 심습니다
+
 ## 정답 지도 PDF (굿노트용)
 
 `docs/지역이해-정답지도.pdf` — 학습지 항목을 지도 위에 이름과 특징까지 적어 놓은 정답본.
@@ -161,12 +175,14 @@ index.html                  앱 전체 (UI + 퀴즈 엔진)
 data/items.js               문제 데이터 220항목
 assets/maps/*               학습지 원본 PDF에서 뽑은 지도 10장
 tools/extract_maps.py       원본 PDF에서 퀴즈용 지도 추출
+tools/make_summary.py       시험 범위 요약 PDF 생성
 tools/fit_markers.py        지도가 바뀌었을 때 마커 좌표 옮기기
 tools/make_answer_maps.py   정답 지도 PDF 생성
 tools/places.py             지도에 찍을 곳의 위도·경도
 tools/fetch_boundaries.py   국내 행정 경계 내려받기·간략화
 data/geo/                   시·도 17개 · 시·군·구 250개 경계
-docs/지역이해-정답지도.pdf   굿노트용 정답 지도 (A4 가로 9쪽)
+docs/지역이해-요약.pdf       시험 범위 요약 (A4 세로 13쪽)
+docs/지역이해-정답지도.pdf   굿노트용 정답 지도 (A4 세로 9쪽)
 docs/PRD.md                 제품 요구사항 정의서
 docs/빈칸-정답-정리.md       빈칸 추론 내역과 원본 PDF 대조 결과
 docs/기출-분석.md            과년도 기출 9쪽 분석(선택형 27 + 서답형 7)
