@@ -68,6 +68,10 @@
   .unit.on .ucount{color:var(--water-m)}
   .unit.on .umark{border-color:var(--water);background:var(--water);color:var(--card)}
   .unit.part .umark{border-color:var(--water);color:var(--water)}
+  .utitle b.out{display:inline-block;margin-left:8px;padding:1px 6px;border:1px solid var(--rule2);
+       border-radius:2px;font:500 10.5px var(--sans);color:var(--faint);vertical-align:2px}
+  .unit.out .uno,.unit.out .utitle{color:var(--faint)}
+  .unit.out.on .utitle b.out{border-color:var(--verm);color:var(--verm)}
   .subcats{display:flex;flex-wrap:wrap;gap:6px;padding:0 4px 12px 40px}
   .subchip{min-height:36px;padding:0 12px;border:1px solid var(--rule2);border-radius:2px;
        background:transparent;color:var(--ink2);font:500 12.5px var(--sans);cursor:pointer}
@@ -344,7 +348,9 @@ document.getElementById("eyebrow").textContent = `2026 · ${ITEMS.length} ITEMS`
 const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
 
 /* ---------- 세션 상태 ---------- */
-let cfg = { cats: CATS.map(c=>c.key), types:"both", count:20, order:"weak", notes:false };
+const inExam   = u => u.exam !== false;                 // 시험 범위(학습지 1~11쪽·23~34쪽)
+const EXAMCATS = UNITS.filter(inExam).flatMap(u=>u.cats);
+let cfg = { cats: [...EXAMCATS], types:"both", count:20, order:"weak", notes:false };
 let quiz = null;
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -361,10 +367,10 @@ function unitHTML(u){
     ? `<div class="subcats">${u.cats.map(c=>
         `<button class="subchip ${cfg.cats.includes(c)?"on":""}" data-c="${c}">${CATLABEL[c]}<n>${countOf(c)}</n></button>`
       ).join("")}</div>` : "";
-  return `<div class="unit ${st}">
+  return `<div class="unit ${st}${inExam(u)?"":" out"}">
     <button class="unitrow" data-u="${u.id}">
       <span class="uno">${u.no}</span>
-      <span class="utitle">${u.title}</span>
+      <span class="utitle">${u.title}${inExam(u)?"":`<b class="out">범위 밖</b>`}</span>
       <span class="ucount">${unitCount(u)}</span>
       <span class="umark">${st==="on"?"✓":st==="part"?"–":""}</span>
     </button>${sub}
@@ -462,10 +468,12 @@ function home(){
     }
     const at = e.target.closest(".areatog");
     if(at){
-      const cats = UNITS.filter(u=>u.area===at.dataset.a).flatMap(u=>u.cats);
-      cfg.cats = cats.every(c=>cfg.cats.includes(c))
-        ? cfg.cats.filter(c=>!cats.includes(c))
-        : [...new Set([...cfg.cats, ...cats])];
+      const us = UNITS.filter(u=>u.area===at.dataset.a);
+      const all = us.flatMap(u=>u.cats);
+      const on  = us.filter(inExam).flatMap(u=>u.cats);   // 켤 때는 시험 범위만
+      cfg.cats = all.every(c=>cfg.cats.includes(c)) || on.every(c=>cfg.cats.includes(c))
+        ? cfg.cats.filter(c=>!all.includes(c))
+        : [...new Set([...cfg.cats, ...on])];
       return home();
     }
   };
