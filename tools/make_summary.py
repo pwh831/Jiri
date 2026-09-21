@@ -6,7 +6,7 @@
 
 data/items.js 에서 exam:false 가 아닌 단원만 뽑아 단원 → 갈래 → 항목 순으로 싣는다.
 지도가 있는 갈래는 지도를 먼저 싣고 번호별 목록을 붙인다.
-각주(notes)는 시험 범위가 아니라 넣지 않는다.
+각주(notes)도 시험 범위라 함께 싣되, 본문과 구분되게 표시한다.
 
 HTML 을 만들어 크로미움으로 인쇄한다. 글자가 벡터로 남아 굿노트에서
 확대해도 깨지지 않고 검색도 된다.
@@ -47,7 +47,7 @@ process.stdout.write(JSON.stringify({
       const items=D.ITEMS.filter(i=>i.category===k);
       const map=items.find(i=>i.map);
       return {key:k, label:c.label, mapKey: map?map.map:null,
-              items: items.map(i=>({num:i.num??null, name:i.name, features:i.features||[]}))};
+              items: items.map(i=>({num:i.num??null, name:i.name, features:i.features||[], notes:i.notes||[]}))};
     })
   })),
   maps: D.MAPS,
@@ -104,7 +104,7 @@ def esc(s):
 
 def all_text(data):
     """문서에 실제로 들어갈 글자를 모두 모은다(폰트 부분집합용)."""
-    out = ["지역 이해 · 시험 범위 요약 2026학년도 2학기 학습지 본문만 추렸습니다 "
+    out = ["지역 이해 · 시험 범위 요약 2026학년도 2학기 학습지 본문과 각주를 추렸습니다 "
            "단원 항목 개 각주는 밖이라 뺐습니다 쪽 지방 행정 구역 대지역 명 설정 이유 "
            "0123456789~·()%°→ ·"]
     for u in data["units"]:
@@ -112,8 +112,8 @@ def all_text(data):
         for c in u["cats"]:
             out.append(c["label"] + NOTE.get(c["key"], ""))
             for it in c["items"]:
-                out.append(it["name"] + "".join(it["features"]) + str(it["num"] or ""))
-    out.append("속성으로 묶어 보기 같은 을 가진 곳끼리 모았습니다 세로로 외우면 짧아집니다 곳")
+                out.append(it["name"] + "".join(it["features"]) + "".join(it["notes"]) + str(it["num"] or ""))
+    out.append("각주 속성으로 묶어 보기 같은 을 가진 곳끼리 모았습니다 세로로 외우면 짧아집니다 곳")
     for g in data.get("groups", []):
         out.append(g["label"] + g["why"] + "".join(g["members"]))
     return "".join(out)
@@ -197,6 +197,13 @@ def build_html(data):
     .trad td:nth-child(2),.trad td:nth-child(3){white-space:nowrap}
     .trad col.a{width:52pt}.trad col.b{width:92pt}.trad col.c{width:92pt}
 
+    /* 학습지 각주 */
+    .nt{margin-top:2.5pt;text-indent:0;padding-left:0}
+    .nt div{font-size:7.7pt;line-height:1.4;color:var(--ink2);padding-left:20pt;
+            text-indent:-20pt;margin-top:1.5pt}
+    .nt i{display:inline-block;width:16pt;font-style:normal;font-size:6.6pt;font-weight:700;
+          color:var(--verm);letter-spacing:.04em;text-indent:0;vertical-align:1pt}
+
     /* 속성 묶음 */
     .grp{break-inside:avoid;margin-bottom:7pt;padding-left:8pt;border-left:1.6pt solid var(--verm)}
     .grp .gl{font-weight:700;font-size:9pt}
@@ -209,11 +216,18 @@ def build_html(data):
     .defs td.k{width:74pt;font-weight:700;padding-right:7pt;white-space:nowrap}
     """
 
+    def notes_html(it):
+        if not it["notes"]:
+            return ""
+        return ('<div class="nt">' +
+                "".join(f'<div><i>각주</i>{esc(x)}</div>' for x in it["notes"]) + "</div>")
+
     def row(it, show_num=True):
         n = f'<span class="n">{it["num"]}</span>' if (show_num and it["num"]) else ""
         ft = "<s>·</s>".join(esc(f) for f in it["features"])
         ft = f' <span class="ft">{ft}</span>' if ft else ""
-        return f'<div class="row">{n}<span class="nm">{esc(it["name"])}</span>{ft}</div>'
+        return (f'<div class="row">{n}<span class="nm">{esc(it["name"])}</span>{ft}'
+                f'{notes_html(it)}</div>')
 
     out = []
     for u in data["units"]:
@@ -250,7 +264,8 @@ def build_html(data):
                 out.append('<table class="defs">')
                 for it in items:
                     out.append(f'<tr><td class="k">{esc(it["name"])}</td>'
-                               f'<td>{"<s>·</s>".join(esc(x) for x in it["features"])}</td></tr>')
+                               f'<td>{"<s>·</s>".join(esc(x) for x in it["features"])}'
+                               f'{notes_html(it)}</td></tr>')
                 out.append("</table>")
             elif all(not it["features"] for it in items):
                 out.append('<div class="names">')
@@ -258,7 +273,8 @@ def build_html(data):
                     out.append(f'<div><span class="n">{it["num"]}</span>{esc(it["name"])}</div>')
                 out.append("</div>")
             else:
-                one = max((len(" ".join(i["features"])) for i in items), default=0) > 110
+                one = (max((len(" ".join(i["features"])) for i in items), default=0) > 110
+                       or any(i["notes"] for i in items))
                 out.append(f'<div class="list{" one" if one else ""}">')
                 out.extend(row(it) for it in items)
                 out.append("</div>")
@@ -283,12 +299,13 @@ def build_html(data):
         out.append("</div></section>")
 
     n_items = sum(len(c["items"]) for u in data["units"] for c in u["cats"])
+    n_notes = sum(len(i["notes"]) for u in data["units"] for c in u["cats"] for i in c["items"])
     cover = (f'<div class="cover"><h1>지역 이해 · 시험 범위 요약</h1>'
-             f'<div class="sub">2026학년도 2학기 · 학습지 본문만 추렸습니다</div>'
+             f'<div class="sub">2026학년도 2학기 · 학습지 본문과 각주를 추렸습니다</div>'
              f'<div class="scope"><span>범위 <b>학습지 1~11쪽 · 23~34쪽</b></span>'
              f'<span>단원 <b>{len(data["units"])}개</b></span>'
              f'<span>항목 <b>{n_items}개</b></span>'
-             f'<span>각주는 범위 밖이라 뺐습니다</span></div></div>')
+             f'<span>각주 <b>{n_notes}</b>줄 포함</span></div></div>')
 
     return (f'<!doctype html><html><head><meta charset="utf-8">'
             f'<style>{fonts}{css}</style></head><body>{cover}{"".join(out)}</body></html>')

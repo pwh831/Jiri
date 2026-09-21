@@ -386,7 +386,7 @@ const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
 /* ---------- 세션 상태 ---------- */
 const inExam   = u => u.exam !== false;                 // 시험 범위(학습지 1~11쪽·23~34쪽)
 const EXAMCATS = UNITS.filter(inExam).flatMap(u=>u.cats);
-let cfg = { cats: [...EXAMCATS], types:"both", count:20, order:"weak", notes:false };
+let cfg = { cats: [...EXAMCATS], types:"exam", count:20, order:"weak", notes:true };
 let quiz = null;
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -473,9 +473,10 @@ function home(){
       <button class="chip ${cfg.order==="rand"?"on":""}" data-o="rand">랜덤</button>
     </div>
     <button class="chip ${cfg.notes?"on":""}" id="notetog" style="width:100%;text-align:left;min-height:50px;line-height:1.35">
-      각주 내용 포함 <n>${NOTECOUNT}</n>
+      각주 포함 <n>${NOTECOUNT}</n>
       <small style="display:block;font:400 11px var(--sans);color:${cfg.notes?"var(--water-m)":"var(--faint)"};margin-top:2px">
-        각주는 원칙적으로 시험 범위가 아니지만 기출에 나온 적이 있습니다</small>
+        ${cfg.notes ? "각주도 시험 범위입니다. 끄면 본문만 출제됩니다"
+                    : "지금은 본문만 출제 중 — 각주도 시험 범위이니 켜 두세요"}</small>
     </button>
   </div>
 
@@ -553,6 +554,8 @@ function begin(list, isReview){
 function feats(i){
   return cfg.notes ? [...(i.features||[]), ...(i.notes||[])] : (i.features||[]);
 }
+/* 학습지 각주에서 온 서술인지 (정답 카드에 표시용) */
+const isNote = (i, f) => (i.notes||[]).includes(f);
 /* 어느 항목이 어떤 속성 묶음에 드는지 */
 const BYID = Object.fromEntries(ITEMS.map(i=>[i.id, i]));
 const GROUPOF = (()=>{ const m = {};
