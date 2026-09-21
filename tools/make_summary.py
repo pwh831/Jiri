@@ -37,7 +37,7 @@ def dump_data():
     """node 로 items.js 를 읽어 JSON 으로 받는다(파싱을 두 번 구현하지 않기 위해)."""
     js = r'''
 const fs=require("fs"),vm=require("vm");const ctx={};vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(process.argv[2],"utf8")+";globalThis._D={UNITS,CATS,MAPS,ITEMS,GROUPS};",ctx);
+vm.runInContext(fs.readFileSync(process.argv[2],"utf8")+";globalThis._D={UNITS,CATS,MAPS,ITEMS,GROUPS,TRAPS};",ctx);
 const D=ctx._D;
 process.stdout.write(JSON.stringify({
   units: D.UNITS.filter(u=>u.exam!==false).map(u=>({
@@ -54,6 +54,9 @@ process.stdout.write(JSON.stringify({
   groups: (typeof D.GROUPS==="undefined"?[]:D.GROUPS).map(g=>({
     label:g.label, why:g.why,
     members:g.members.map(id=>{const i=D.ITEMS.find(x=>x.id===id); return i?i.name:id;})})),
+  traps: (typeof D.TRAPS==="undefined"?[]:D.TRAPS).map(t=>({
+    kind:t.kind, label:t.label, why:t.why,
+    ids:t.ids.map(id=>{const i=D.ITEMS.find(x=>x.id===id); return i?i.name:id;})})),
 }));
 '''
     p = os.path.join(ROOT, "tools", "_dump.js")
@@ -116,6 +119,9 @@ def all_text(data):
     out.append("각주 속성으로 묶어 보기 같은 을 가진 곳끼리 모았습니다 세로로 외우면 짧아집니다 곳")
     for g in data.get("groups", []):
         out.append(g["label"] + g["why"] + "".join(g["members"]))
+    out.append("헷갈리는 짝 한 곳만 바꿔 오답을 만드는 자리 값을 맞바꿈 방향이 반대 이름이 닮음 짝")
+    for t in data.get("traps", []):
+        out.append(t["label"] + t["why"] + "".join(t["ids"]))
     return "".join(out)
 
 
@@ -204,6 +210,13 @@ def build_html(data):
     .nt i{display:inline-block;width:16pt;font-style:normal;font-size:6.6pt;font-weight:700;
           color:var(--verm);letter-spacing:.04em;text-indent:0;vertical-align:1pt}
 
+    /* 헷갈리는 짝 */
+    .trp{break-inside:avoid;margin-bottom:6.5pt;padding-left:8pt;border-left:1.6pt solid var(--verm)}
+    .trp .tl{font-weight:700;font-size:8.8pt}
+    .trp .tk{display:inline-block;margin-left:4pt;padding:0 4pt;border:.5pt solid var(--rule2);
+         border-radius:2pt;font-size:6.6pt;font-weight:700;color:var(--faint);vertical-align:1.5pt}
+    .trp .tw{font-size:7.9pt;color:var(--ink2);line-height:1.45;margin-top:1.5pt}
+
     /* 속성 묶음 */
     .grp{break-inside:avoid;margin-bottom:7pt;padding-left:8pt;border-left:1.6pt solid var(--verm)}
     .grp .gl{font-weight:700;font-size:9pt}
@@ -280,6 +293,23 @@ def build_html(data):
                 out.append("</div>")
             out.append("</div>")
         out.append("</section>")
+
+    traps = data.get("traps", [])
+    if traps:
+        KIND = {"swap": "값 바꿔치기", "flip": "방향 반대", "name": "이름이 닮음"}
+        out.append('<section class="unit" style="break-before:page">')
+        out.append('<div class="uhead"><span class="uno">부록</span>'
+                   '<span class="utitle">헷갈리는 짝</span>'
+                   f'<span class="upage">{len(traps)}짝</span></div>')
+        out.append('<div class="note" style="margin-bottom:8pt">'
+                   '출제자가 한 곳만 바꿔 오답을 만들 때 고르는 자리입니다. '
+                   '맞게 아는 것과, 옆의 것과 헷갈리지 않는 것은 다른 능력입니다.</div>')
+        out.append('<div class="list">')
+        for t in traps:
+            out.append(f'<div class="trp"><div class="tl">{esc(t["label"])}'
+                       f'<span class="tk">{KIND.get(t["kind"], t["kind"])}</span></div>'
+                       f'<div class="tw">{esc(t["why"])}</div></div>')
+        out.append("</div></section>")
 
     groups = data.get("groups", [])
     if groups:

@@ -91,6 +91,12 @@
         padding:14px 16px;font:400 16px/1.6 var(--serif);color:var(--ink)}
   .opt.name span{font:600 16px var(--sans)}
 
+  /* 헷갈리는 짝 */
+  .trap{border:1px solid var(--verm);background:var(--verm-t);padding:13px 15px}
+  .trap lbl{display:block;font:600 10.5px/1 var(--sans);letter-spacing:.1em;
+       color:var(--verm);margin-bottom:7px}
+  .trap .tw{font-size:13.5px;line-height:1.6;color:var(--ink)}
+
   /* 보기 조합 (ㄱㄴㄷㄹ) */
   .bogi{border:1px solid var(--rule2);background:var(--card);margin-top:14px}
   .bogi .bhead{padding:7px 14px;border-bottom:1px solid var(--rule2);
@@ -564,6 +570,19 @@ const GROUPOF = (()=>{ const m = {};
   return m; })();
 const groupsOf = i => (GROUPOF[i.id] || []).filter(g=>g.members.length >= 2);
 
+/* 헷갈리는 짝: 이 항목과 함께 묶인 다른 항목들 */
+const TRAPOF = (()=>{ const m = {};
+  (typeof TRAPS === "undefined" ? [] : TRAPS).forEach(t=>
+    t.ids.forEach(id=>{ (m[id] = m[id] || []).push(t); }));
+  return m; })();
+function trapMates(item){
+  const out = [], seen = new Set([item.id]);
+  (TRAPOF[item.id] || []).forEach(t=>t.ids.forEach(id=>{
+    if(!seen.has(id) && BYID[id]){ seen.add(id); out.push(BYID[id]); } }));
+  return out;
+}
+const trapsOf = i => TRAPOF[i.id] || [];
+
 /* 어느 항목에 어떤 특징이 몇 번 나오는지 (중복 특징 판별용) */
 let FEATOWNERS = {};
 function buildOwners(){
@@ -610,20 +629,28 @@ function siblings(item){
                       && norm(i.name)!==self && feats(i).length);
 }
 
-/* 이 항목의 것이 아닌 서술을 n개 (같은 갈래 우선) */
+/* 이 항목의 것이 아닌 서술을 n개.
+ * 한 자리마다 절반 남짓은 '헷갈리는 짝'에서, 나머지는 같은 갈래에서 뽑는다.
+ * 전부 함정에서 뽑으면 답이 뻔해지고, 무작위로만 뽑으면 정작 위험한 짝이 안 나온다. */
+const TRAPSHARE = 0.55;
 function pickFalse(item, n){
   const mine = new Set(feats(item).map(norm));
   const take = arr => arr.flatMap(i=>feats(i).map(f=>({f, from:i.name})))
                          .filter(o=>!mine.has(norm(o.f)));
-  let pool = shuffle(take(siblings(item)));
-  if (pool.length < n){
-    const self = norm(item.name);
-    pool = pool.concat(shuffle(take(ITEMS.filter(i=>i.scope===item.scope && i.id!==item.id
-                                               && norm(i.name)!==self && feats(i).length))));
-  }
+  const self = norm(item.name);
+  const trapPool = shuffle(take(trapMates(item)));
+  const sibPool  = shuffle(take(siblings(item)));
+  const wide     = () => shuffle(take(ITEMS.filter(i=>i.scope===item.scope && i.id!==item.id
+                                               && norm(i.name)!==self && feats(i).length)));
   const seen = new Set(), out = [];
-  for (const o of pool){ const k = norm(o.f);
-    if (!seen.has(k)){ seen.add(k); out.push(o); if (out.length >= n) break; } }
+  const grab = pool => { while (pool.length){ const o = pool.shift(); const k = norm(o.f);
+      if (!seen.has(k)){ seen.add(k); out.push(o); return true; } } return false; };
+  while (out.length < n){
+    const first = Math.random() < TRAPSHARE ? trapPool : sibPool;
+    if (grab(first)) continue;
+    if (grab(first === trapPool ? sibPool : trapPool)) continue;
+    if (!grab(wide())) break;
+  }
   return out;
 }
 
@@ -680,14 +707,9 @@ function buildOX(item){
   if (Math.random() < 0.5){
     return {stmt: mine[Math.random()*mine.length|0], truth:true, owner:item.name};
   }
-  const take = arr => arr.filter(i=>i.id!==item.id && norm(i.name)!==self)
-                        .flatMap(i=>feats(i).map(f=>({f, from:i.name})))
-                        .filter(o=>!mineSet.has(norm(o.f)));
-  let cand = shuffle(take(ITEMS.filter(i=>i.category===item.category)));
-  if(!cand.length) cand = shuffle(take(ITEMS.filter(i=>i.scope===item.scope)));
-  if(!cand.length) cand = shuffle(take(ITEMS));
-  if(!cand.length) return mine.length ? {stmt: mine[0], truth:true, owner:item.name} : null;
-  return {stmt: cand[0].f, truth:false, owner: cand[0].from};
+  const wrong = pickFalse(item, 1)[0];
+  if(!wrong) return {stmt: mine[0], truth:true, owner:item.name};
+  return {stmt: wrong.f, truth:false, owner: wrong.from};
 }
 
 /* 특징 → 지명: 단서로 쓸 특징은 그 항목에만 있는 것을 먼저 고른다 */
@@ -865,6 +887,18 @@ function wireOpts(fn){
   };
   document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) fn(+e.key-1); };
 }
+/* 이 항목이 걸린 함정을 정답 카드 아래에 붙인다 */
+const trapHTML = it => {
+  const ts = trapsOf(it);
+  if(!ts.length) return "";
+  return ts.map(t=>`
+    <div class="block" style="margin-top:14px">
+      <div class="trap">
+        <lbl>헷갈리는 짝 · ${esc(t.label)}</lbl>
+        <div class="tw">${esc(t.why)}</div>
+      </div>
+    </div>`).join("");
+};
 const allFeatHTML = it => `
   <div class="block" style="margin-top:22px">
     <div class="allfeat">
@@ -899,7 +933,7 @@ function renderCombo(q){
       if(!st.ok) el.querySelector(".bt").insertAdjacentHTML("beforeend",
         `<div class="bwhy">${esc(st.from)}의 특징입니다</div>`);
     });
-    return allFeatHTML(it);
+    return allFeatHTML(it) + trapHTML(it);
   }));
 }
 
@@ -929,7 +963,7 @@ function renderError(q){
       el.querySelector(".tv").insertAdjacentHTML("beforeend",
         `<div class="bwhy">${esc(q.rows[bad].from)}의 특징입니다</div>`);
     }
-    return allFeatHTML(it);
+    return allFeatHTML(it) + trapHTML(it);
   }));
 }
 
@@ -955,7 +989,7 @@ function renderCommon(q){
           q.group.members.map(id=>esc(BYID[id].name)).join(" · ")}</div>
         <div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">${esc(q.group.why)}</div>
       </div>
-    </div>`));
+    </div>` + trapHTML(it)));
 }
 
 function renderOX(q){
@@ -1010,6 +1044,7 @@ function answerOX(said){
         <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
+    ${trapHTML(it)}
     ${nextBtn()}`);
   wireNext();
 }
@@ -1112,6 +1147,7 @@ function answerName(val){
           <div class="stack" style="gap:7px">${featList(it)}</div></div>` : ""}
       </div>
     </div>
+    ${trapHTML(it)}
     ${nextBtn()}`);
   document.getElementById("sub").disabled = true;
   document.getElementById("skip").disabled = true;
@@ -1140,6 +1176,7 @@ function answerFeat(idx){
         <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
+    ${trapHTML(it)}
     ${nextBtn()}`);
   wireNext();
 }
@@ -1165,6 +1202,7 @@ function answerReverse(idx){
         <div class="stack" style="gap:6px">${feats(it).map(f=>`<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
       </div>
     </div>
+    ${trapHTML(it)}
     ${nextBtn()}`);
   wireNext();
 }
