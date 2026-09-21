@@ -82,7 +82,7 @@
   /* 유형 선택 */
   .types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .types .chip{min-height:56px;padding:8px 12px;text-align:left;line-height:1.3}
-  .types .chip:first-child{grid-column:1 / -1;min-height:46px}
+  .types .chip.wide{grid-column:1 / -1;min-height:46px}
   .types .chip small{display:block;font:400 11px var(--sans);color:var(--faint);margin-top:2px}
   .types .chip.on small{color:var(--water-m)}
 
@@ -90,6 +90,36 @@
   .clue{margin-top:14px;border-left:3px solid var(--verm);background:var(--verm-t);
         padding:14px 16px;font:400 16px/1.6 var(--serif);color:var(--ink)}
   .opt.name span{font:600 16px var(--sans)}
+
+  /* 보기 조합 (ㄱㄴㄷㄹ) */
+  .bogi{border:1px solid var(--rule2);background:var(--card);margin-top:14px}
+  .bogi .bhead{padding:7px 14px;border-bottom:1px solid var(--rule2);
+       font:500 10px var(--mono);letter-spacing:.18em;color:var(--faint)}
+  .bogi .bitem{display:flex;gap:11px;padding:11px 14px;align-items:flex-start}
+  .bogi .bitem + .bitem{border-top:1px dotted var(--rule)}
+  .bogi .bk{flex:none;font:600 14px var(--sans);color:var(--ink2);width:16px}
+  .bogi .bt{flex-grow:1;font-size:14.5px;line-height:1.5}
+  .bogi .bitem.t .bk{color:var(--moss)} .bogi .bitem.f .bk{color:var(--verm)}
+  .bogi .bitem.t{background:var(--moss-t)} .bogi .bitem.f{background:var(--verm-t)}
+  .bogi .bwhy{font-size:12px;color:var(--verm);margin-top:4px}
+  .opt.pair span{font:600 16px var(--sans);letter-spacing:.1em}
+
+  /* 오류 찾기 표 */
+  .tbl{border:1px solid var(--ink);background:var(--card);margin-top:14px}
+  .tbl .trow{display:flex;gap:10px;padding:11px 13px;align-items:flex-start}
+  .tbl .trow + .trow{border-top:1px solid var(--rule)}
+  .tbl .tn{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
+       border:1.5px solid var(--rule2);font:500 11px var(--mono);color:var(--ink2);margin-top:1px}
+  .tbl .tk{flex:none;width:76px;font:700 14px var(--serif)}
+  .tbl .tv{flex-grow:1;font-size:13.5px;line-height:1.5;color:var(--ink2)}
+  .tbl .trow.bad{background:var(--verm-t)}
+  .tbl .trow.bad .tn{border-color:var(--verm);background:var(--verm);color:var(--card)}
+  .tbl .trow.bad .tv{color:var(--verm)}
+
+  /* 공통점 */
+  .trio{display:flex;gap:8px;margin-top:14px}
+  .trio div{flex:1;border:1px solid var(--rule2);background:var(--card);padding:15px 8px;
+       text-align:center;font:700 17px var(--serif);letter-spacing:-.01em}
 
   /* O·X 판별 */
   .card{border:1px solid var(--rule2);background:var(--card)}
@@ -335,13 +365,19 @@ const whatOf  = c => c === "term" ? "뜻과 예" : isOverview(c) ? "내용" : "�
 const hasMap = i => !!(i.map && MAPS[i.map]);
 const numOf  = i => hasMap(i) && MAPS[i.map].labeled ? `<em>${i.num}번</em>` : "";
 const TYPES = [
-  {key:"both",   label:"혼합",        hint:"다섯 유형을 섞어서"},
+  {key:"exam",   label:"기출형",       hint:"실제 시험에 나오는 형식만 섞어서", big:true},
+  {key:"both",   label:"혼합",        hint:"모든 유형을 섞어서", big:true},
   {key:"name",   label:"지도 → 지명",  hint:"지도 보고 이름 쓰기"},
-  {key:"feat",   label:"지명 → 특징",  hint:"특징 고르기"},
   {key:"rfeat",  label:"특징 → 지명",  hint:"설명 보고 지역 맞히기"},
+  {key:"combo",  label:"보기 조합",    hint:"ㄱㄴㄷㄹ 중 옳은 것만"},
+  {key:"error",  label:"오류 찾기",    hint:"표에서 틀린 줄 고르기"},
+  {key:"common", label:"공통점",       hint:"여러 지역을 묶는 속성"},
   {key:"ox",     label:"O·X 판별",     hint:"서술이 맞는지 가려내기"},
+  {key:"feat",   label:"지명 → 특징",  hint:"특징 고르기"},
   {key:"recall", label:"특징 떠올리기", hint:"보지 않고 떠올린 뒤 확인"}
 ];
+/* 기출이 실제로 묻는 형식. 특징을 '떠올리는' 문제는 기출에 없어 뺐다. */
+const EXAMTYPES = ["rfeat","combo","error","common","ox","name"];
 const countOf = k => ITEMS.filter(i=>i.category===k).length;
 const NOTECOUNT = ITEMS.reduce((t,i)=>t+(i.notes||[]).length, 0);
 document.getElementById("eyebrow").textContent = `2026 · ${ITEMS.length} ITEMS`;
@@ -426,7 +462,7 @@ function home(){
   <div class="block">
     <div class="sec"><span>출제 설정</span><i></i></div>
     <div class="types" id="types" style="margin-bottom:9px">
-      ${TYPES.map(t=>`<button class="chip ${cfg.types===t.key?"on":""}" data-t="${t.key}">${t.label}
+      ${TYPES.map(t=>`<button class="chip ${t.big?"wide ":""}${cfg.types===t.key?"on":""}" data-t="${t.key}">${t.label}
         <small>${t.hint}</small></button>`).join("")}
     </div>
     <div class="grid g4" id="counts" style="margin-bottom:9px">
@@ -517,6 +553,14 @@ function begin(list, isReview){
 function feats(i){
   return cfg.notes ? [...(i.features||[]), ...(i.notes||[])] : (i.features||[]);
 }
+/* 어느 항목이 어떤 속성 묶음에 드는지 */
+const BYID = Object.fromEntries(ITEMS.map(i=>[i.id, i]));
+const GROUPOF = (()=>{ const m = {};
+  (typeof GROUPS === "undefined" ? [] : GROUPS).forEach(g=>
+    g.members.forEach(id=>{ (m[id] = m[id] || []).push(g); }));
+  return m; })();
+const groupsOf = i => (GROUPOF[i.id] || []).filter(g=>g.members.length >= 2);
+
 /* 어느 항목에 어떤 특징이 몇 번 나오는지 (중복 특징 판별용) */
 let FEATOWNERS = {};
 function buildOwners(){
@@ -525,24 +569,104 @@ function buildOwners(){
 }
 buildOwners();
 
+/* 항목마다 낼 수 있는 유형이 다르다. 지도가 없으면 지도 문제를, 특징이 하나뿐이면
+ * 보기 조합을, 묶이는 속성이 없으면 공통점 문제를 낼 수 없다. */
+function canDo(item, type){
+  const n = feats(item).length;
+  if (type === "name")   return hasMap(item);
+  if (type === "combo")  return n >= 2 && pickFalse(item, 2).length >= 2;
+  if (type === "common") return groupsOf(item).length > 0 && GROUPS.length >= 5;
+  if (type === "error")  return n >= 1 && siblings(item).length >= 3;
+  return n >= 1;                              // feat · rfeat · ox · recall
+}
+
 function makeQ(item){
-  const hasFeat = feats(item).length > 0;
-  const mapped  = hasMap(item);
   let type = cfg.types;
-  if (type === "both"){
-    const menu = mapped ? ["name","feat","rfeat","ox","recall"] : ["feat","rfeat","ox","recall"];
-    type = menu[Math.random()*menu.length|0];
+  if (type === "both" || type === "exam"){
+    const menu = (type === "exam" ? EXAMTYPES : TYPES.map(t=>t.key).filter(k=>k!=="both"&&k!=="exam"))
+                   .filter(k=>canDo(item, k));
+    type = menu.length ? menu[Math.random()*menu.length|0] : "name";
   }
-  if (!hasFeat && type !== "name") type = "name";
-  if (!mapped && type === "name") type = hasFeat ? "rfeat" : "name";
+  if (!canDo(item, type)){                    // 고른 유형을 낼 수 없으면 낼 수 있는 것으로
+    const alt = ["rfeat","ox","feat","name","recall"].filter(k=>canDo(item, k));
+    type = alt.length ? alt[0] : "name";
+  }
   if (type === "feat")   return {type, item, ...buildChoices(item)};
   if (type === "rfeat")  return {type, item, ...buildReverse(item)};
-  if (type === "ox"){
-    const q = buildOX(item);
-    return q ? {type, item, ...q} : {type:"feat", item, ...buildChoices(item)};
-  }
+  if (type === "ox")     return {type, item, ...buildOX(item)};
+  if (type === "combo")  return {type, item, ...buildCombo(item)};
+  if (type === "error")  return {type, item, ...buildError(item)};
+  if (type === "common") return {type, item, ...buildCommon(item)};
   return {type, item};                       // name · recall
 }
+
+/* 같은 갈래의 다른 항목(특징이 있는 것만) */
+function siblings(item){
+  const self = norm(item.name);
+  return ITEMS.filter(i=>i.category===item.category && i.id!==item.id
+                      && norm(i.name)!==self && feats(i).length);
+}
+
+/* 이 항목의 것이 아닌 서술을 n개 (같은 갈래 우선) */
+function pickFalse(item, n){
+  const mine = new Set(feats(item).map(norm));
+  const take = arr => arr.flatMap(i=>feats(i).map(f=>({f, from:i.name})))
+                         .filter(o=>!mine.has(norm(o.f)));
+  let pool = shuffle(take(siblings(item)));
+  if (pool.length < n){
+    const self = norm(item.name);
+    pool = pool.concat(shuffle(take(ITEMS.filter(i=>i.scope===item.scope && i.id!==item.id
+                                               && norm(i.name)!==self && feats(i).length))));
+  }
+  const seen = new Set(), out = [];
+  for (const o of pool){ const k = norm(o.f);
+    if (!seen.has(k)){ seen.add(k); out.push(o); if (out.length >= n) break; } }
+  return out;
+}
+
+/* 보기 조합: 옳은 서술 2 + 틀린 서술 2 를 ㄱㄴㄷㄹ 에 섞고, 답지는 두 개씩 묶어 5개 */
+const BOGI = ["ㄱ","ㄴ","ㄷ","ㄹ"];
+function buildCombo(item){
+  const mine  = shuffle([...feats(item)]).slice(0, 2);
+  const other = pickFalse(item, 2);
+  const stmts = shuffle([
+    ...mine.map(f=>({text:f, ok:true})),
+    ...other.map(o=>({text:o.f, ok:false, from:o.from}))
+  ]);
+  const right = stmts.map((st,i)=>st.ok ? BOGI[i] : null).filter(Boolean).sort().join("");
+  const pairs = [];
+  for (let a=0; a<4; a++) for (let b=a+1; b<4; b++) pairs.push(BOGI[a]+BOGI[b]);
+  const opts = shuffle([right, ...shuffle(pairs.filter(p=>p!==right)).slice(0,4)])
+                 .map(p=>({label:p, ok:p===right}));
+  return {stmts, opts};
+}
+
+/* 오류 찾기: 같은 갈래 네 줄짜리 표에서 한 줄만 남의 설명으로 바꿔 놓는다 */
+function buildError(item){
+  const others = shuffle(siblings(item)).slice(0, 3);
+  const wrong  = pickFalse(item, 1)[0];
+  const rows = shuffle([
+    {name:item.name, text:(wrong ? wrong.f : feats(item)[0]), ok:!wrong, from:wrong && wrong.from},
+    ...others.map(i=>{ const fs = feats(i);
+      return {name:i.name, text:fs[Math.random()*fs.length|0], ok:true}; })
+  ]);
+  const opts = rows.map((r,i)=>({label:String(i+1), ok:!r.ok}));
+  return {rows, opts, right:feats(item)};
+}
+
+/* 공통점: 같은 속성으로 묶이는 지역 두셋을 보여 주고 그 속성을 묻는다 */
+function buildCommon(item){
+  const gs = groupsOf(item);
+  const g  = gs[Math.random()*gs.length|0];
+  // 채점이 이 항목에 기록되므로 자기 자신은 반드시 보여 준다
+  const rest = shuffle(g.members.filter(id=>id!==item.id).map(id=>BYID[id]));
+  const show = shuffle([item, ...rest.slice(0, Math.min(2, rest.length))]);
+  const others = shuffle(GROUPS.filter(x=>x.id!==g.id)).slice(0, 4);
+  const opts = shuffle([{label:g.label, ok:true}, ...others.map(x=>({label:x.label, ok:false}))]);
+  return {group:g, show, opts};
+}
+
+
 
 /* O·X 판별: 절반은 그 지역의 실제 서술, 절반은 다른 지역의 서술을 가져다 붙인다.
  * 기출의 주력 형식(자료 속 오류 찾기 / 진술 O·X 채점)을 연습하기 위한 유형. */
@@ -638,6 +762,9 @@ function render(){
   const q = quiz.qs[quiz.at], it = q.item;
   const kind = kindOf(it.category);
   if (q.type === "rfeat")  return renderReverse(q);
+  if (q.type === "combo")  return renderCombo(q);
+  if (q.type === "error")  return renderError(q);
+  if (q.type === "common") return renderCommon(q);
   if (q.type === "ox")     return renderOX(q);
   if (q.type === "recall") return renderRecall(q);
 
@@ -709,6 +836,123 @@ function renderReverse(q){
     const b = e.target.closest(".opt"); if(b) answerReverse(+b.dataset.i);
   };
   document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) answerReverse(+e.key-1); };
+}
+
+/* 고른 답을 채점하고 정답 카드를 붙이는 공통 처리 */
+function gradeChoice(q, idx, after){
+  const it = q.item;
+  if(!q.opts || q.opts[idx]===undefined || q.answered) return;
+  q.answered = true;
+  document.onkeydown = null;
+  const ok = q.opts[idx].ok;
+  if(ok) quiz.right++;
+  record(it, ok);
+  quiz.log.push({item:it, ok, mine:q.opts[idx].label, type:q.typeLabel});
+  document.querySelectorAll(".opt").forEach((b,i)=>{
+    b.disabled = true;
+    if(q.opts[i].ok){ b.classList.add("correct"); b.insertAdjacentHTML("beforeend", `<em>정답</em>`); }
+    else if(i===idx){ b.classList.add("wrong"); b.insertAdjacentHTML("beforeend", `<em>내 답</em>`); }
+  });
+  app.insertAdjacentHTML("beforeend", after(ok) + nextBtn());
+  wireNext();
+}
+function wireOpts(fn){
+  document.getElementById("opts").onclick = e=>{
+    const b = e.target.closest(".opt"); if(b) fn(+b.dataset.i);
+  };
+  document.onkeydown = e=>{ if(/^[1-5]$/.test(e.key)) fn(+e.key-1); };
+}
+const allFeatHTML = it => `
+  <div class="block" style="margin-top:22px">
+    <div class="allfeat">
+      <lbl>${esc(it.name)} · 전체 ${whatOf(it.category)}</lbl>
+      <div class="stack" style="gap:6px">${feats(it).map(f=>
+        `<div style="font-size:14px;line-height:1.5">${esc(f)}</div>`).join("")}</div>
+    </div>
+  </div>`;
+
+/* ---------- 보기 조합 (ㄱㄴㄷㄹ) ---------- */
+function renderCombo(q){
+  const it = q.item;
+  q.typeLabel = "보기 조합";
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i>${numOf(it)}</div>
+    <div class="q"><h2><mark>${esc(it.name)}</mark>에 대한 설명으로<br>옳은 것만을 고른 것은?</h2></div>
+    <div class="bogi">
+      <div class="bhead">보기</div>
+      ${q.stmts.map((st,i)=>`<div class="bitem" data-b="${i}">
+        <span class="bk">${BOGI[i]}</span><span class="bt">${esc(st.text)}</span></div>`).join("")}
+    </div>
+  </div>
+  <div class="opts" id="opts">
+    ${q.opts.map((o,i)=>`<button class="opt pair" data-i="${i}"><b>${i+1}</b><span>${o.label}</span></button>`).join("")}
+  </div>`;
+  wireOpts(i=>gradeChoice(q, i, ()=>{
+    document.querySelectorAll(".bitem").forEach((el,n)=>{
+      const st = q.stmts[n];
+      el.classList.add(st.ok ? "t" : "f");
+      if(!st.ok) el.querySelector(".bt").insertAdjacentHTML("beforeend",
+        `<div class="bwhy">${esc(st.from)}의 특징입니다</div>`);
+    });
+    return allFeatHTML(it);
+  }));
+}
+
+/* ---------- 오류 찾기 ---------- */
+function renderError(q){
+  const it = q.item;
+  q.typeLabel = "오류 찾기";
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i></div>
+    <div class="q"><h2>다음 표에서 설명이<br><em>옳지 않은</em> 것은?</h2></div>
+    <div class="tbl">
+      ${q.rows.map((r,i)=>`<div class="trow" data-r="${i}">
+        <span class="tn">${i+1}</span><span class="tk">${esc(r.name)}</span>
+        <span class="tv">${esc(r.text)}</span></div>`).join("")}
+    </div>
+  </div>
+  <div class="opts" id="opts">
+    ${q.opts.map((o,i)=>`<button class="opt pair" data-i="${i}"><b>${i+1}</b><span>${o.label}번</span></button>`).join("")}
+  </div>`;
+  wireOpts(i=>gradeChoice(q, i, ()=>{
+    const bad = q.rows.findIndex(r=>!r.ok);
+    if(bad>=0){
+      const el = document.querySelectorAll(".trow")[bad];
+      el.classList.add("bad");
+      el.querySelector(".tv").insertAdjacentHTML("beforeend",
+        `<div class="bwhy">${esc(q.rows[bad].from)}의 특징입니다</div>`);
+    }
+    return allFeatHTML(it);
+  }));
+}
+
+/* ---------- 공통점 ---------- */
+function renderCommon(q){
+  const it = q.item;
+  q.typeLabel = "공통점";
+  app.innerHTML = `
+  <div class="block">${headHTML()}</div>
+  <div class="block">
+    <div class="sec" style="margin-bottom:14px"><span>${UNITOF[it.category].no} ${CATLABEL[it.category]}</span><i></i></div>
+    <div class="q"><h2>다음 ${q.show.length}곳을<br><em>묶는 것</em>은?</h2></div>
+    <div class="trio">${q.show.map(i=>`<div>${esc(i.name)}</div>`).join("")}</div>
+  </div>
+  <div class="opts" id="opts">
+    ${q.opts.map((o,i)=>`<button class="opt name" data-i="${i}"><b>${i+1}</b><span>${esc(o.label)}</span></button>`).join("")}
+  </div>`;
+  wireOpts(i=>gradeChoice(q, i, ()=>`
+    <div class="block" style="margin-top:22px">
+      <div class="allfeat">
+        <lbl>${esc(q.group.label)} · ${q.group.members.length}곳</lbl>
+        <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:7px">${
+          q.group.members.map(id=>esc(BYID[id].name)).join(" · ")}</div>
+        <div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">${esc(q.group.why)}</div>
+      </div>
+    </div>`));
 }
 
 function renderOX(q){

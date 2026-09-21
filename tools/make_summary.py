@@ -37,7 +37,7 @@ def dump_data():
     """node 로 items.js 를 읽어 JSON 으로 받는다(파싱을 두 번 구현하지 않기 위해)."""
     js = r'''
 const fs=require("fs"),vm=require("vm");const ctx={};vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(process.argv[2],"utf8")+";globalThis._D={UNITS,CATS,MAPS,ITEMS};",ctx);
+vm.runInContext(fs.readFileSync(process.argv[2],"utf8")+";globalThis._D={UNITS,CATS,MAPS,ITEMS,GROUPS};",ctx);
 const D=ctx._D;
 process.stdout.write(JSON.stringify({
   units: D.UNITS.filter(u=>u.exam!==false).map(u=>({
@@ -51,6 +51,9 @@ process.stdout.write(JSON.stringify({
     })
   })),
   maps: D.MAPS,
+  groups: (typeof D.GROUPS==="undefined"?[]:D.GROUPS).map(g=>({
+    label:g.label, why:g.why,
+    members:g.members.map(id=>{const i=D.ITEMS.find(x=>x.id===id); return i?i.name:id;})})),
 }));
 '''
     p = os.path.join(ROOT, "tools", "_dump.js")
@@ -110,6 +113,9 @@ def all_text(data):
             out.append(c["label"] + NOTE.get(c["key"], ""))
             for it in c["items"]:
                 out.append(it["name"] + "".join(it["features"]) + str(it["num"] or ""))
+    out.append("속성으로 묶어 보기 같은 을 가진 곳끼리 모았습니다 세로로 외우면 짧아집니다 곳")
+    for g in data.get("groups", []):
+        out.append(g["label"] + g["why"] + "".join(g["members"]))
     return "".join(out)
 
 
@@ -191,6 +197,12 @@ def build_html(data):
     .trad td:nth-child(2),.trad td:nth-child(3){white-space:nowrap}
     .trad col.a{width:52pt}.trad col.b{width:92pt}.trad col.c{width:92pt}
 
+    /* 속성 묶음 */
+    .grp{break-inside:avoid;margin-bottom:7pt;padding-left:8pt;border-left:1.6pt solid var(--verm)}
+    .grp .gl{font-weight:700;font-size:9pt}
+    .grp .gm{font-weight:700;color:var(--water);margin:1.5pt 0 1pt}
+    .grp .gw{font-size:7.9pt;color:var(--ink2);line-height:1.4}
+
     /* 개념 표 */
     .defs{width:100%;border-collapse:collapse;font-size:8.4pt}
     .defs td{border:0;border-bottom:.5pt solid var(--rule);padding:3.5pt 0;vertical-align:top}
@@ -252,6 +264,23 @@ def build_html(data):
                 out.append("</div>")
             out.append("</div>")
         out.append("</section>")
+
+    groups = data.get("groups", [])
+    if groups:
+        out.append('<section class="unit" style="break-before:page">')
+        out.append('<div class="uhead"><span class="uno">부록</span>'
+                   '<span class="utitle">속성으로 묶어 보기</span>'
+                   f'<span class="upage">{len(groups)}묶음</span></div>')
+        out.append('<div class="note" style="margin-bottom:8pt">'
+                   '지역마다 특징을 붙여 외우면 "이 특징을 가진 곳이 또 어디냐"를 못 맞힙니다. '
+                   '기출이 묻는 방향이 대체로 그쪽이라, 같은 속성을 가진 곳끼리 모았습니다.</div>')
+        out.append('<div class="list">')
+        for g in groups:
+            out.append(f'<div class="grp"><div class="gl">{esc(g["label"])} '
+                       f'<span style="color:var(--faint);font-weight:400">{len(g["members"])}곳</span></div>'
+                       f'<div class="gm">{esc(" · ".join(g["members"]))}</div>'
+                       f'<div class="gw">{esc(g["why"])}</div></div>')
+        out.append("</div></section>")
 
     n_items = sum(len(c["items"]) for u in data["units"] for c in u["cats"])
     cover = (f'<div class="cover"><h1>지역 이해 · 시험 범위 요약</h1>'
