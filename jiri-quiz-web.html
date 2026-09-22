@@ -72,6 +72,8 @@
   .subchip n{font:500 10.5px var(--mono);color:var(--faint);margin-left:5px}
   .subchip.on{border-color:var(--water);background:var(--water-t);color:var(--water-d);font-weight:600}
   .subchip.on n{color:var(--water-m)}
+  .subchip.out{border-style:dashed;color:var(--faint)}
+  .subchip.out.on{border-style:solid;border-color:var(--verm);color:var(--verm)}
 
   /* 유형 선택 */
   .types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
@@ -305,8 +307,9 @@
 /* 학습지 대단원 구조
  * 큰 틀 두 개(한국지리 / 세계지리) 아래 학습지 단원 번호대로 배치.
  *
- * exam:false 는 시험 범위(학습지 1~11쪽, 23~34쪽) 밖이라는 뜻이다.
+ * exam:false 는 시험 범위(학습지 1~11쪽, 23~34쪽) 밖이라는 뜻이다. UNITS 와 CATS 둘 다에 쓴다.
  * 자료는 그대로 두되 처음에는 선택하지 않고 홈 화면에 '범위 밖'으로 표시한다.
+ * 하천(river)은 34쪽 지도에 번호만 있고 설명은 35쪽부터라 갈래째 범위 밖이다.
  * 006 영남·007 제주(15~22쪽)와 013 이후(35쪽~)는 아직 데이터로 만들지 않았다. */
 const AREAS = [
   { id:"korea", title:"한국지리" },
@@ -347,7 +350,7 @@ const CATS = [
   { key:"strait",      label:"해협",       unit:"u011" },
   { key:"foldrange",   label:"습곡산지",   unit:"u012" },
   { key:"range",       label:"산맥",       unit:"u012" },
-  { key:"river",       label:"하천",       unit:"u012" }
+  { key:"river",       label:"하천",       unit:"u012", exam:false }
 ];
 
 const MAPS = {
@@ -1371,11 +1374,16 @@ const EXAMTYPES = ["rfeat","combo","error","common","ox","name"];
 const countOf = k => ITEMS.filter(i=>i.category===k).length;
 const NOTECOUNT = ITEMS.reduce((t,i)=>t+(i.notes||[]).length, 0);
 document.getElementById("eyebrow").textContent = `2026 · ${ITEMS.length} ITEMS`;
-const unitCount = u => u.cats.reduce((t,c)=>t+countOf(c),0);
+/* 단원 옆 숫자는 실제로 출제되는 항목 수 (범위 밖 갈래는 빼고 센다) */
+const unitCount = u => (u.exam === false ? u.cats : u.cats.filter(catInExam))
+                         .reduce((t,c)=>t+countOf(c),0);
 
 /* ---------- 세션 상태 ---------- */
-const inExam   = u => u.exam !== false;                 // 시험 범위(학습지 1~11쪽·23~34쪽)
-const EXAMCATS = UNITS.filter(inExam).flatMap(u=>u.cats);
+/* 시험 범위(학습지 1~11쪽·23~34쪽). 단원 통째로 빠지기도 하고(호남),
+ * 단원 안의 한 갈래만 빠지기도 한다(012 단원의 하천). */
+const inExam    = u => u.exam !== false;
+const catInExam = k => { const c = CATS.find(x=>x.key===k); return !!c && c.exam !== false; };
+const EXAMCATS  = UNITS.filter(inExam).flatMap(u=>u.cats).filter(catInExam);
 let cfg = { cats: [...EXAMCATS], types:"exam", count:20, order:"weak", notes:true };
 let quiz = null;
 const app = document.getElementById("app");
@@ -1384,14 +1392,16 @@ const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)
 
 /* ---------- 홈 ---------- */
 function unitState(u){
-  const on = u.cats.filter(c=>cfg.cats.includes(c)).length;
-  return on===0 ? "off" : on===u.cats.length ? "on" : "part";
+  const on   = u.cats.filter(c=>cfg.cats.includes(c)).length;
+  const want = inExam(u) ? u.cats.filter(catInExam).length : u.cats.length;
+  return on===0 ? "off" : on>=want ? "on" : "part";
 }
 function unitHTML(u){
   const st = unitState(u);
   const sub = u.cats.length > 1
     ? `<div class="subcats">${u.cats.map(c=>
-        `<button class="subchip ${cfg.cats.includes(c)?"on":""}" data-c="${c}">${CATLABEL[c]}<n>${countOf(c)}</n></button>`
+        `<button class="subchip ${cfg.cats.includes(c)?"on":""}${catInExam(c)?"":" out"}" data-c="${c}"
+           ${catInExam(c)?"":'title="시험 범위 밖"'}>${CATLABEL[c]}<n>${countOf(c)}</n></button>`
       ).join("")}</div>` : "";
   return `<div class="unit ${st}${inExam(u)?"":" out"}">
     <button class="unitrow" data-u="${u.id}">
@@ -1488,16 +1498,17 @@ function home(){
     const row = e.target.closest(".unitrow");
     if(row){
       const u = UNITS.find(x=>x.id===row.dataset.u);
+      const want = inExam(u) ? u.cats.filter(catInExam) : u.cats;
       cfg.cats = unitState(u)==="on"
         ? cfg.cats.filter(c=>!u.cats.includes(c))
-        : [...new Set([...cfg.cats, ...u.cats])];
+        : [...new Set([...cfg.cats, ...want])];
       return home();
     }
     const at = e.target.closest(".areatog");
     if(at){
       const us = UNITS.filter(u=>u.area===at.dataset.a);
       const all = us.flatMap(u=>u.cats);
-      const on  = us.filter(inExam).flatMap(u=>u.cats);   // 켤 때는 시험 범위만
+      const on  = us.filter(inExam).flatMap(u=>u.cats).filter(catInExam);  // 켤 때는 시험 범위만
       cfg.cats = all.every(c=>cfg.cats.includes(c)) || on.every(c=>cfg.cats.includes(c))
         ? cfg.cats.filter(c=>!all.includes(c))
         : [...new Set([...cfg.cats, ...on])];

@@ -4,7 +4,7 @@
     python3 tools/make_summary.py            # docs/지역이해-요약.pdf
     python3 tools/make_summary.py --open x.pdf
 
-data/items.js 에서 exam:false 가 아닌 단원만 뽑아 단원 → 갈래 → 항목 순으로 싣는다.
+data/items.js 에서 exam:false 가 아닌 단원·갈래만 뽑아 단원 → 갈래 → 항목 순으로 싣는다.
 지도가 있는 갈래는 지도를 먼저 싣고 번호별 목록을 붙인다.
 각주(notes)도 시험 범위라 함께 싣되, 본문과 구분되게 표시한다.
 
@@ -27,10 +27,8 @@ CHROME = "/opt/pw-browsers/chromium"
 SHEET = {"001": "1~2쪽", "002": "3~5쪽", "003": "5~8쪽", "004": "9~11쪽",
          "009": "23~25쪽", "010": "26~28쪽", "011": "29~31쪽", "012": "32~34쪽"}
 
-# 지도를 통째로 실을 갈래(같은 지도를 쓰는 갈래가 여럿이면 첫 갈래에만)
-NOTE = {
-    "river": "하천별 설명은 학습지 35쪽부터라 시험 범위 밖입니다. 이름과 위치만 외우면 됩니다.",
-}
+# 갈래에 덧붙일 안내 문구
+NOTE = {}
 
 
 def dump_data():
@@ -42,7 +40,7 @@ const D=ctx._D;
 process.stdout.write(JSON.stringify({
   units: D.UNITS.filter(u=>u.exam!==false).map(u=>({
     no:u.no, title:u.title, area:u.area,
-    cats: u.cats.map(k=>{
+    cats: u.cats.filter(k=>{const c=D.CATS.find(x=>x.key===k); return c && c.exam!==false;}).map(k=>{
       const c=D.CATS.find(x=>x.key===k);
       const items=D.ITEMS.filter(i=>i.category===k);
       const map=items.find(i=>i.map);

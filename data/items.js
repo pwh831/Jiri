@@ -13,8 +13,9 @@
 /* 학습지 대단원 구조
  * 큰 틀 두 개(한국지리 / 세계지리) 아래 학습지 단원 번호대로 배치.
  *
- * exam:false 는 시험 범위(학습지 1~11쪽, 23~34쪽) 밖이라는 뜻이다.
+ * exam:false 는 시험 범위(학습지 1~11쪽, 23~34쪽) 밖이라는 뜻이다. UNITS 와 CATS 둘 다에 쓴다.
  * 자료는 그대로 두되 처음에는 선택하지 않고 홈 화면에 '범위 밖'으로 표시한다.
+ * 하천(river)은 34쪽 지도에 번호만 있고 설명은 35쪽부터라 갈래째 범위 밖이다.
  * 006 영남·007 제주(15~22쪽)와 013 이후(35쪽~)는 아직 데이터로 만들지 않았다. */
 const AREAS = [
   { id:"korea", title:"한국지리" },
@@ -55,7 +56,7 @@ const CATS = [
   { key:"strait",      label:"해협",       unit:"u011" },
   { key:"foldrange",   label:"습곡산지",   unit:"u012" },
   { key:"range",       label:"산맥",       unit:"u012" },
-  { key:"river",       label:"하천",       unit:"u012" }
+  { key:"river",       label:"하천",       unit:"u012", exam:false }
 ];
 
 const MAPS = {
