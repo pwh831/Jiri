@@ -242,6 +242,7 @@ assets/maps/*               학습지 원본 PDF에서 뽑은 지도 10장
 tools/extract_maps.py       원본 PDF에서 퀴즈용 지도 추출
 tools/make_summary.py       시험 범위 요약 PDF 생성
 tools/make_test.py          전수 점검 시험지 v2(data/sheet.js + PDF) 생성
+tools/fill_blanks.py        학습지 원본의 흰 글씨(빈칸 정답)를 검게 바꾼 '빈칸 채운 학습지' 생성
 tools/fit_markers.py        지도가 바뀌었을 때 마커 좌표 옮기기
 tools/make_answer_maps.py   정답 지도 PDF 생성
 tools/places.py             지도에 찍을 곳의 위도·경도
