@@ -303,6 +303,32 @@
   .srow .go small em{font-style:normal;color:var(--moss)}
   .srow .bar{height:3px;background:var(--rule);margin-top:6px;position:relative}
   .srow .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--water)}
+  .srow{flex-wrap:wrap}
+  .srow .head{flex:1 1 100%;display:flex;align-items:baseline;gap:12px;padding:2px 0 8px}
+  .srow .head b{font:600 15px var(--sans)}
+  .srow .head small{margin-left:auto;font:500 11px var(--mono);color:var(--faint)}
+  .parts{flex:1 1 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding-left:40px}
+  .pbtn{min-height:58px;padding:7px 9px;border:1px solid var(--rule2);border-radius:2px;background:transparent;
+       cursor:pointer;text-align:left;color:var(--ink);position:relative;overflow:hidden}
+  .pbtn:disabled{opacity:.4;cursor:default}
+  .pbtn .pk{font:700 11px var(--mono);color:var(--verm)}
+  .pbtn .pl{display:block;font:600 12.5px var(--sans);margin-top:1px}
+  .pbtn .pn{display:block;font:500 10.5px var(--mono);color:var(--faint);margin-top:3px}
+  .pbtn .pn em{font-style:normal;color:var(--moss)}
+  .pbtn i{position:absolute;left:0;bottom:0;height:3px;background:var(--water)}
+  .pbtn .rd{position:absolute;right:5px;top:5px;font:600 10.5px var(--sans);color:var(--verm)}
+  .rcl{list-style:none;margin:10px 0 0;padding:0}
+  .rcl li{display:flex;gap:10px;align-items:flex-start;padding:9px 2px;border-top:1px dotted var(--rule)}
+  .rcl button{flex:none;width:30px;height:30px;border:1.5px solid var(--rule2);border-radius:50%;background:transparent;
+       font:700 13px var(--sans);color:transparent;cursor:pointer}
+  .rcl li.on button{border-color:var(--moss);background:var(--moss);color:var(--card)}
+  .rcl li span{font-size:14px;line-height:1.55;padding-top:4px}
+  .rcl li.on span{color:var(--moss)}
+  .rcl .tg{display:inline-block;font:600 10.5px/1.5 var(--sans);color:var(--verm);border:1px solid var(--verm);
+       border-radius:2px;padding:0 4px;margin-right:5px}
+  .memo{width:100%;min-height:92px;border:1px solid var(--rule2);border-radius:2px;background:#fff;padding:10px;
+       font:400 14px/1.6 var(--sans);color:var(--ink);resize:vertical;outline:none}
+  .memo:focus{border-color:var(--water)}
   .srow .redo{flex:none;min-height:36px;padding:0 10px;border:1px solid var(--verm);border-radius:2px;
        background:transparent;color:var(--verm);font:600 12px var(--sans);cursor:pointer}
   .scard{border:1px solid var(--rule2);background:var(--card);padding:14px 15px 12px}
@@ -521,8 +547,8 @@ function home(){
 
   <div class="block">
     <button class="sheetgo" id="sheetGo">
-      <span class="t">학습지 전수 점검<small>본문·각주 ${SHEETSTAT.lines}문장을 한 번씩 · PDF 시험지와 같은 번호</small></span>
-      <span class="p">${sheetDone()} / ${SHEETSTAT.cards}</span>
+      <span class="t">학습지 전수 점검 v2<small>본문·각주 ${SHEETSTAT.lines}문장 · 빈칸 / 특징→이름 / 이름→특징</small></span>
+      <span class="p">${sheetDone()} / ${SHEETSTAT.all}</span>
     </button>
   </div>
 
@@ -1334,7 +1360,8 @@ function result(){
 
 /* ---------- 학습지 전수 점검 ----------
  * data/sheet.js 의 SHEET 을 그대로 푼다. tools/make_test.py 가 같은 데이터로 PDF 를 찍으므로
- * 카드 번호·빈칸 번호가 docs/지역이해-점검시험.pdf 와 같다. 기록은 따로 저장한다. */
+ * 문항 번호가 docs/지역이해-점검시험-v2.pdf 와 같다. 기록은 따로 저장한다.
+ *   A 빈칸 채우기(u.cards) · B 특징 → 이름(u.b) · C 이름 → 특징(u.c) */
 const SLS = "jiri-sheet-v1";
 let sstore = {};
 try { sstore = JSON.parse(localStorage.getItem(SLS) || "{}"); } catch(e){ sstore = {}; }
@@ -1342,12 +1369,18 @@ const ssave = ()=>{ try{ localStorage.setItem(SLS, JSON.stringify(sstore)); }cat
 const CIRC = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
 const circ = n => CIRC[n] || `(${n+1})`;
 const cardMax = c => c.ans.length + (c.hide ? 1 : 0);
-const SHEETSTAT = (()=>{ let cards=0, lines=0, pts=0;
-  for(const u of SHEET) for(const c of u.cards){ cards++; lines+=c.lines.length; pts+=cardMax(c); }
-  return {cards, lines, pts}; })();
-const sheetDone = () => SHEET.reduce((t,u)=>t+u.cards.filter(c=>sstore[c.id]).length, 0);
+const PARTS = [
+  {k:"A", label:"빈칸 채우기",  hint:"이름 칸 + ①②③", get:u=>u.cards},
+  {k:"B", label:"특징 → 이름",  hint:"문장을 보고 어디인지", get:u=>u.b},
+  {k:"C", label:"이름 → 특징",  hint:"이름을 보고 꺼내기", get:u=>u.c},
+];
+const qMax = (part, q) => part==="A" ? cardMax(q) : part==="B" ? 1 : q.n;
+const SHEETSTAT = (()=>{ let cards=0, lines=0, all=0;
+  for(const u of SHEET){ for(const c of u.cards){ cards++; lines+=c.lines.length; } all += u.cards.length+u.b.length+u.c.length; }
+  return {cards, lines, all}; })();
+const sheetDone = () => SHEET.reduce((t,u)=>t+[...u.cards,...u.b,...u.c].filter(q=>sstore[q.id]).length, 0);
 const cardOk = c => { const r = sstore[c.id]; return !!r && r.got === r.max; };
-let sq = null;   // {u, list:[카드 번호], at}
+let sq = null;   // {u, part, list:[문항 번호], at}
 
 function blankOk(input, ans){
   const a = norm(ans), g = norm(input);
@@ -1361,48 +1394,84 @@ function blankOk(input, ans){
 function sheetHome(){
   document.onkeydown = null; sq = null;
   const rows = SHEET.map((u,ui)=>{
-    const done = u.cards.filter(c=>sstore[c.id]).length;
-    const got  = u.cards.reduce((t,c)=>t+(sstore[c.id]?sstore[c.id].got:0), 0);
-    const max  = u.cards.reduce((t,c)=>t+cardMax(c), 0);
-    const bad  = u.cards.filter(c=>sstore[c.id] && !cardOk(c)).length;
+    const btns = PARTS.map(P=>{
+      const qs = P.get(u);
+      if(!qs.length) return `<button class="pbtn" disabled><span class="pk">${P.k}</span><span class="pl">${P.label}</span><span class="pn">문항 없음</span></button>`;
+      const done = qs.filter(q=>sstore[q.id]).length;
+      const got  = qs.reduce((t,q)=>t+(sstore[q.id]?sstore[q.id].got:0), 0);
+      const max  = qs.reduce((t,q)=>t+qMax(P.k,q), 0);
+      const bad  = qs.filter(q=>sstore[q.id] && sstore[q.id].got < sstore[q.id].max).length;
+      return `<button class="pbtn" data-u="${ui}" data-p="${P.k}">
+        <span class="pk">${P.k}</span>${bad?`<span class="rd">✕${bad}</span>`:""}
+        <span class="pl">${P.label}</span>
+        <span class="pn">${done}/${qs.length} · <em>${got}</em>/${max}</span>
+        <i style="width:${Math.round(done/qs.length*100)}%"></i></button>`;
+    }).join("");
     return `<div class="srow">
-      <button class="go" data-u="${ui}"><span class="uno">${u.no}</span><span style="flex-grow:1">
-        <b>${esc(u.title)}</b>
-        <small>카드 ${done}/${u.cards.length} · 맞은 칸 <em>${got}</em>/${max} · 학습지 ${u.pages}</small>
-        <div class="bar"><i style="width:${Math.round(done/u.cards.length*100)}%"></i></div></span></button>
-      ${bad?`<button class="redo" data-r="${ui}">틀린 카드 ${bad}</button>`:""}
+      <div class="head"><span class="uno">${u.no}</span><b>${esc(u.title)}</b><small>학습지 ${u.pages}</small></div>
+      <div class="parts">${btns}</div>
     </div>`;
   }).join("");
   app.innerHTML = `
   <div class="block">
-    <div class="sec"><span>학습지 전수 점검</span><i></i><em>${sheetDone()} / ${SHEETSTAT.cards}</em></div>
+    <div class="sec"><span>학습지 전수 점검 v2</span><i></i><em>${sheetDone()} / ${SHEETSTAT.all}</em></div>
     <p style="margin:0 0 14px;font-size:13px;line-height:1.65;color:var(--ink2)">
-      카드 하나가 학습지 항목 하나입니다. 이름 칸에는 지도 번호와 설명을 보고 지명·용어를,
-      <b style="color:var(--verm)">①②③</b> 칸에는 빠진 말을 씁니다. 빈칸은 선생님이 학습지에서 비워 둔 자리를 먼저 골랐고,
-      PDF 시험지(docs/지역이해-점검시험.pdf)와 카드·빈칸 번호가 같습니다.</p>
+      한 문장을 세 방향으로 묻습니다. <b>A</b> 설명을 다 보고 이름과 빈칸 채우기 ·
+      <b>B</b> 문장 하나만 보고 어느 곳(무엇)인지 · <b>C</b> 이름만 보고 특징 꺼내기.
+      PDF(docs/지역이해-점검시험-v2.pdf)와 번호가 같습니다. 이어서 풀려면 누르고, 빨간 ✕ 는 틀린 수입니다.</p>
     ${rows}
   </div>
   <div class="stack">
     <button class="btn2" id="hm">처음으로</button>
     <button class="btn2" id="sreset" style="border:0;color:var(--faint);font-size:12.5px;min-height:36px">점검 기록 초기화</button>
   </div>`;
-  app.querySelectorAll(".go").forEach(b=>b.onclick=()=>{
-    const u = SHEET[+b.dataset.u];
-    const list = u.cards.map((_,i)=>i);
-    const first = list.findIndex(i=>!sstore[u.cards[i].id]);
-    sq = {u:+b.dataset.u, list, at: first<0 ? 0 : first};
-    sheetCard();
-  });
-  app.querySelectorAll(".redo").forEach(b=>b.onclick=()=>{
-    const u = SHEET[+b.dataset.r];
-    sq = {u:+b.dataset.r, list: u.cards.map((_,i)=>i).filter(i=>sstore[u.cards[i].id] && !cardOk(u.cards[i])), at:0, redo:true};
-    sheetCard();
+  app.querySelectorAll(".pbtn[data-p]").forEach(b=>b.onclick=()=>{
+    const ui = +b.dataset.u, part = b.dataset.p, qs = PARTS.find(P=>P.k===part).get(SHEET[ui]);
+    const bad = qs.map((_,i)=>i).filter(i=>{ const r=sstore[qs[i].id]; return r && r.got < r.max; });
+    const all = qs.map((_,i)=>i);
+    const first = all.findIndex(i=>!sstore[qs[i].id]);
+    // 다 풀었고 틀린 게 있으면 틀린 것만, 아니면 안 푼 곳부터
+    if(first < 0 && bad.length) sq = {u:ui, part, list:bad, at:0, redo:true};
+    else sq = {u:ui, part, list:all, at: first<0 ? 0 : first};
+    sheetGo();
   });
   document.getElementById("hm").onclick = home;
   document.getElementById("sreset").onclick = ()=>{
     if(confirm("전수 점검 기록을 모두 지웁니다. 계속할까요?")){ sstore={}; ssave(); sheetHome(); }
   };
   window.scrollTo(0,0);
+}
+
+function sheetGo(){
+  if(sq.at >= sq.list.length) return sheetHome();
+  if(sq.part === "B") return cardB();
+  if(sq.part === "C") return cardC();
+  return sheetCard();
+}
+
+function sheetTop(title){
+  const u = SHEET[sq.u], pad = String(sq.at+1).padStart(2,"0");
+  const P = PARTS.find(x=>x.k===(sq.part||"A"));
+  return `<div class="block">
+    <div class="ruler">${sq.list.length <= 80
+      ? sq.list.map((i,k)=>`<s class="${k<sq.at?"d":""}${k===sq.at?" c":""}"></s>`).join("")
+      : `<s class="d" style="flex-grow:${sq.at}"></s><s class="c" style="flex-grow:.4"></s><s style="flex-grow:${sq.list.length-sq.at-1}"></s>`}</div>
+    <div class="meta"><span>${u.no} · ${P.k} ${P.label}${sq.redo?" · 틀린 것":""}</span><em>${pad} / ${sq.list.length}</em></div>
+  </div>`;
+}
+
+function sheetNextButtons(){
+  const last = sq.at + 1 >= sq.list.length;
+  document.getElementById("sbtns").innerHTML = `
+    <button class="btn2" id="slist">목록</button>
+    <button class="btn ink" id="snext">${last ? "끝 · 목록으로" : "다음"}<small>ENTER</small></button>`;
+  document.getElementById("slist").onclick = sheetHome;
+  const nx = document.getElementById("snext");
+  nx.onclick = ()=>{ document.onkeydown = null; sq.at++; sheetGo(); };
+  setTimeout(()=>{ document.onkeydown = e=>{
+    if(e.key!=="Enter" || e.isComposing || e.keyCode===229) return;
+    if(e.target && e.target.tagName === "TEXTAREA") return;
+    e.preventDefault(); nx.click(); }; }, 0);
 }
 
 function sheetCard(){
@@ -1423,10 +1492,7 @@ function sheetCard(){
     : `<div class="ttl">${esc(c.title)}</div>`;
   const pad = String(sq.at+1).padStart(2,"0");
   app.innerHTML = `
-  <div class="block">
-    <div class="ruler">${sq.list.map((i,k)=>`<s class="${k<sq.at?"d":""}${k===sq.at?" c":""}"></s>`).join("")}</div>
-    <div class="meta"><span>${u.no} ${esc(u.title)}${sq.redo?" · 틀린 카드":""}</span><em>${pad} / ${sq.list.length}</em></div>
-  </div>
+  ${sheetTop()}
   ${c.map ? `<div class="block">${mapHTML(it).replace(/<em>\d+번<\/em>/, `<em>지도 ${c.mnum}번</em>`)}</div>` : ""}
   <div class="block">
     <div class="scard">
@@ -1497,10 +1563,102 @@ function gradeCard(){
     <button class="btn ink" id="snext">${last ? "단원 끝 · 목록으로" : "다음 카드"}<small>ENTER</small></button>`;
   document.getElementById("slist").onclick = sheetHome;
   const nx = document.getElementById("snext");
-  nx.onclick = ()=>{ document.onkeydown = null; if(last) sheetHome(); else { sq.at++; sheetCard(); } };
+  nx.onclick = ()=>{ document.onkeydown = null; sq.at++; sheetGo(); };
   setTimeout(()=>{ document.onkeydown = e=>{
     if(e.key!=="Enter" || e.isComposing || e.keyCode===229) return;
     e.preventDefault(); nx.click(); }; }, 0);
+  document.getElementById("sres").scrollIntoView({block:"nearest", behavior:"smooth"});
+}
+
+/* B 특징 → 이름 */
+function cardB(){
+  document.onkeydown = null; sq.graded = false;
+  const q = SHEET[sq.u].b[sq.list[sq.at]];
+  const lines = q.lines.map(l=>`<div class="sln${l.k==="n"?" n":""}">${
+    l.k==="n"?`<span class="tg">${esc(l.tag||"각주")}</span>`:""}${esc(l.t)}</div>`).join("");
+  app.innerHTML = `${sheetTop()}
+  <div class="block"><div class="scard">
+    <div class="shead"><span class="sid">${q.id.split("-")[1]}</span>
+      <span style="font:600 13px var(--sans);color:var(--ink2)">어느 곳(무엇)의 설명인가?</span></div>
+    ${lines}
+    <div class="nmrow" id="nmrow" style="margin-top:12px"><input id="nm" placeholder="이름을 쓰세요" autocomplete="off" spellcheck="false"><span class="v" id="nmv"></span></div>
+    <div id="sres"></div>
+  </div></div>
+  <div class="actions"><div class="side" id="sbtns">
+    <button class="btn2" id="sback">${sq.at?"이전":"목록"}</button>
+    <button class="btn" id="sgrade">채점<small>ENTER</small></button>
+  </div></div>`;
+  const nm = document.getElementById("nm");
+  if(matchMedia("(pointer:fine)").matches) nm.focus();
+  nm.onkeydown = e=>{ if(e.key==="Enter" && !e.isComposing && e.keyCode!==229){ e.preventDefault(); gradeB(); } };
+  document.getElementById("sgrade").onclick = gradeB;
+  document.getElementById("sback").onclick = ()=>{ if(sq.at){ sq.at--; sheetGo(); } else sheetHome(); };
+  window.scrollTo(0,0);
+}
+function gradeB(){
+  if(sq.graded) return; sq.graded = true;
+  const q = SHEET[sq.u].b[sq.list[sq.at]];
+  const nm = document.getElementById("nm"); nm.onkeydown = null; nm.readOnly = true; nm.blur();
+  const its = q.ans.map(id=>BYID[id]);
+  const hit = its.map(it=>judge(nm.value, it)).find(Boolean);
+  const names = [...new Set(its.map(it=>it.name))].join(" / ");
+  document.getElementById("nmrow").classList.add(hit?"ok":"no");
+  document.getElementById("nmv").innerHTML = hit
+    ? `<span style="color:var(--moss)">${hit==="typo"?"맞음(오타) · "+esc(names):"맞음"}</span>`
+    : `<span style="color:var(--verm)">${esc(names)}</span>`;
+  sstore[q.id] = {got: hit?1:0, max:1, t:Date.now()}; ssave();
+  record(its[0], !!hit);
+  if(!hit) document.getElementById("sres").innerHTML =
+    `<div class="allfeat" style="margin-top:14px"><lbl>${esc(its[0].name)}의 다른 특징</lbl>${
+      feats(its[0]).map(f=>`<div class="feat"><i></i><span>${esc(f)}</span></div>`).join("")}</div>`;
+  sheetNextButtons();
+}
+
+/* C 이름 → 특징 — 떠올린 뒤 정답을 펴서 떠올린 것에 스스로 표시한다 */
+function cardC(){
+  document.onkeydown = null;
+  const e = SHEET[sq.u].c[sq.list[sq.at]], it = BYID[e.item];
+  app.innerHTML = `${sheetTop()}
+  ${e.map ? `<div class="block">${mapHTML(it).replace(/<em>\d+번<\/em>/, `<em>지도 ${e.mnum}번</em>`)}</div>` : ""}
+  <div class="block"><div class="scard">
+    <div class="shead"><span class="sid">${e.id.split("-")[1]}</span><div class="ttl">${esc(it.name)}</div>
+      <span style="margin-left:auto;font:700 12px var(--mono);color:var(--verm)">${e.n}가지</span></div>
+    <textarea class="memo" id="memo" placeholder="떠오르는 특징을 적어 보세요(적지 않고 머릿속으로만 떠올려도 됩니다)"></textarea>
+    <div id="sres"></div>
+  </div></div>
+  <div class="actions"><div class="side" id="sbtns">
+    <button class="btn2" id="sback">${sq.at?"이전":"목록"}</button>
+    <button class="btn" id="sshow">정답 펴기</button>
+  </div></div>`;
+  bindZoom();
+  document.getElementById("sback").onclick = ()=>{ if(sq.at){ sq.at--; sheetGo(); } else sheetHome(); };
+  document.getElementById("sshow").onclick = showC;
+  window.scrollTo(0,0);
+}
+function showC(){
+  const e = SHEET[sq.u].c[sq.list[sq.at]], it = BYID[e.item];
+  const rows = [...it.features.map(f=>({t:f})), ...(it.notes||[]).map(n=>({t:n, n:true}))];
+  const memo = document.getElementById("memo"); memo.readOnly = true;
+  document.getElementById("sres").innerHTML = `
+    <div style="margin-top:14px;font:600 12px var(--sans);color:var(--ink2)">떠올린 것을 누르세요</div>
+    <ul class="rcl">${rows.map((r,i)=>`<li data-i="${i}"><button aria-label="떠올림">✓</button><span>${
+      r.n?`<span class="tg">각주</span>`:""}${esc(r.t)}</span></li>`).join("")}</ul>
+    <div class="sgrade"><span>떠올린 수</span><span><b id="cgot">0</b> / ${rows.length}</span></div>`;
+  const on = new Set();
+  document.querySelectorAll(".rcl li").forEach(li=>li.onclick=()=>{
+    const i = +li.dataset.i; on.has(i) ? on.delete(i) : on.add(i);
+    li.classList.toggle("on", on.has(i));
+    const g = document.getElementById("cgot"); g.textContent = on.size; g.className = on.size===rows.length?"full":"";
+  });
+  document.getElementById("sbtns").innerHTML = `
+    <button class="btn2" id="sall">다 떠올림</button>
+    <button class="btn ink" id="ssave">저장하고 다음</button>`;
+  document.getElementById("sall").onclick = ()=>document.querySelectorAll(".rcl li:not(.on)").forEach(li=>li.click());
+  document.getElementById("ssave").onclick = ()=>{
+    sstore[e.id] = {got: on.size, max: rows.length, t: Date.now()}; ssave();
+    record(it, on.size === rows.length);
+    sq.at++; sheetGo();
+  };
   document.getElementById("sres").scrollIntoView({block:"nearest", behavior:"smooth"});
 }
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""학습지 전수 점검 시험지를 만든다 — PDF 와 웹이 같은 문항을 쓴다.
+"""학습지 전수 점검 시험지(v2)를 만든다 — PDF 와 웹이 같은 문항을 쓴다.
 
-    python3 tools/make_test.py                    # data/sheet.js + docs/지역이해-점검시험.pdf
+단원마다 세 부분: A 빈칸 채우기 · B 특징 → 이름 · C 이름 → 특징 (build_cross 참고).
+아래는 A 에 대한 설명이다.
+
+    python3 tools/make_test.py                    # data/sheet.js + docs/지역이해-점검시험-v2.pdf
     python3 tools/make_test.py --src 원본.pdf     # 원본에서 빈칸 정답을 다시 뽑은 뒤 생성
 
 시험 범위(학습지 1~11쪽, 23~34쪽, 각주 포함)의 모든 문장을 한 번씩 싣는다.
@@ -113,6 +116,7 @@ def cand_list(spans):
 
 
 JOINED = set()
+WEAK = re.compile(r"^(인구 약|전통적 지역 구분|대지역 구분)")
 PARTICLE = set("은는이가을를의에와과도로으만및")
 
 
@@ -293,12 +297,116 @@ def build(data, blanks):
     return units, stat
 
 
+def build_cross(data, units):
+    """버전 2 — 같은 내용을 양방향으로 묻는다.
+
+    B 특징 → 이름: 지명·용어 항목의 문장(본문+각주)을 단원 안에서 섞어 하나씩 내고,
+                  어느 곳(무엇)의 설명인지 쓰게 한다. 본문 속 이름은 ○○로 가린다.
+                  같은 문장을 여러 곳이 나눠 가지면 한 번만 내고 정답을 모두 받는다.
+    C 이름 → 특징: 이름(과 지도 번호)만 보고 특징을 몇 가지인지 알려 준 뒤 꺼내 쓰게 한다.
+                  개관 주제도 넣는다(주제 → 내용).
+    섞는 순서는 단원 번호를 씨앗으로 고정해 PDF 와 웹이 같다."""
+    import random
+    byunit = {u["no"]: u for u in data["units"]}
+    mnum = {cd["item"]: cd.get("mnum") for u in units for cd in u["cards"]}
+    mapof = {cd["item"]: cd.get("map") for u in units for cd in u["cards"]}
+
+    def key(t):
+        return re.sub(r"[\s·,.()'\"]", "", NOTE_TAG.sub("", t))
+
+    # 같은 문장을 가진 항목들(범위 전체)
+    owners = {}
+    for u in data["units"]:
+        for c in u["cats"]:
+            if shows_name(c["key"]):
+                continue
+            for it in c["items"]:
+                for t in it["features"] + it["notes"]:
+                    owners.setdefault(key(t), [])
+                    if it["id"] not in owners[key(t)]:
+                        owners[key(t)].append(it["id"])
+    items = {it["id"]: it for u in data["units"] for c in u["cats"] for it in c["items"]}
+
+    stat = {"b": 0, "b_multi": 0, "c": 0, "c_lines": 0}
+
+    def weak(t):
+        return len(owners.get(key(t), [])) > 1 or WEAK.search(t)
+
+    def questions(it, fs):
+        """문장 하나 = 문항 하나. 혼자서는 어디인지 가려지지 않는 문장(여러 곳이 같은 문장을
+        가졌거나 '인구 약 ○만 명'·'전통적 지역 구분' 같은 것)은 같은 항목의 다른 문장에 붙여
+        두 줄짜리 문항으로 만든다."""
+        strong = [x for x in fs if not weak(x[1])]
+        groups = [[x] for x in strong]
+        lone = [x for x in fs if weak(x[1])]
+        if not groups:
+            groups = [lone] if lone else []
+        else:
+            for i, x in enumerate(lone):
+                # 앞쪽 문장부터 하나씩 짝을 지어 준다(한 문항에 약한 문장은 하나만)
+                groups[i % len(groups)].append(x)
+        out = []
+        for g in groups:
+            own = None
+            for _, t in g:
+                o = set(owners.get(key(t), [it["id"]]))
+                own = o if own is None else own & o
+            own = [it["id"]] + sorted(x for x in (own or set()) if x != it["id"])
+            lines = []
+            for kind, t in g:
+                m = NOTE_TAG.search(t)
+                text = t[: m.start()] if m else t
+                for o in own:
+                    text = mask(text, items[o])
+                ln = {"k": kind, "t": text}
+                if m:
+                    ln["tag"] = m.group(1)
+                lines.append(ln)
+            out.append({"lines": lines, "ans": own})
+            names = {items[o]["name"] for o in own}
+            stat["b_multi"] += len(names) > 1
+        return out
+    for uo in units:
+        u = byunit[uo["no"]]
+        b, cc = [], []
+        for c in u["cats"]:
+            for it in c["items"]:
+                fs = [("f", t) for t in it["features"]] + [("n", t) for t in it["notes"]]
+                if not shows_name(c["key"]):
+                    b += questions(it, fs)
+                if fs:
+                    e = {"item": it["id"], "n": len(fs)}
+                    if mapof.get(it["id"]):
+                        e["map"] = mapof[it["id"]]
+                        e["mnum"] = mnum[it["id"]]
+                    cc.append(e)
+                    stat["c_lines"] += len(fs)
+        seen, uniq = set(), []
+        for q in b:                    # 진천·음성처럼 같은 문장만 가진 곳은 한 문항으로
+            k = tuple(sorted(key(l["t"]) for l in q["lines"]))
+            if k not in seen:
+                seen.add(k)
+                uniq.append(q)
+        b = uniq
+        random.Random("B" + uo["no"]).shuffle(b)
+        for i, q in enumerate(b, 1):
+            q["id"] = f'{uo["no"]}-B{i:02d}'
+        for i, e in enumerate(cc, 1):
+            e["id"] = f'{uo["no"]}-C{i:02d}'
+        uo["b"], uo["c"] = b, cc
+        stat["b"] += len(b)
+        stat["c"] += len(cc)
+    return stat
+
+
 def write_js(units):
     body = json.dumps(units, ensure_ascii=False, separators=(",", ":"))
     open(OUTJS, "w", encoding="utf-8").write(
         "/* 학습지 전수 점검 시험지 — tools/make_test.py 가 만든다. 손으로 고치지 말 것.\n"
-        " * 항목 하나 = 카드 하나. hide:true 면 이름을 맞혀야 하고, lines[].p 의 숫자는 ans 의 빈칸 번호다.\n"
-        " * PDF(docs/지역이해-점검시험.pdf)와 문항·번호가 같다. */\n"
+        " * A(cards) 빈칸: 항목 하나 = 카드 하나. hide:true 면 이름을 맞혀야 하고, lines[].p 의 숫자는 ans 의 빈칸 번호다.\n"
+        " * B(b) 특징 → 이름: t 를 보고 ans(항목 id 목록) 중 하나를 쓴다.\n"
+        " * C(c) 이름 → 특징: item 의 특징 n 가지를 꺼낸다(스스로 채점).\n"
+        " * PDF(docs/지역이해-점검시험-v2.pdf)와 문항·번호가 같다. */\n"
         f"const SHEET = {body};\n"
         'if (typeof module !== "undefined") { module.exports = { SHEET }; }\n')
 
@@ -324,6 +432,12 @@ def html_doc(units, data, stat):
             for ln in cd["lines"]:
                 texts.append("".join(p for p in ln["p"] if isinstance(p, str)) + ln.get("tag", ""))
             texts.append("".join(cd["ans"]))
+        for q in u["b"]:
+            texts.append("".join(l["t"] + l.get("tag", "") for l in q["lines"]))
+        for e in u["c"]:
+            it = byid[e["item"]]
+            texts.append(it["name"] + "".join(it["features"]) + "".join(it["notes"]))
+    texts.append("특징 이름 꺼내기 보고 쓰기 가지 어느 곳의 설명인가 문항 스스로 떠올린 것에 표시 양방향 교차 버전 부 A B C →")
     text = "".join(texts)
     fonts = "".join([font_face("Nanum", "NanumGothic.ttf", 400, text),
                      font_face("Nanum", "NanumGothicBold.ttf", 700, text),
@@ -373,6 +487,39 @@ def html_doc(units, data, stat):
     .bl{display:inline-block;border-bottom:.8pt solid var(--ink);min-width:30pt;text-indent:0;
           padding:0 2pt;height:11pt;vertical-align:-2pt;position:relative}
     .bl b{position:absolute;left:1pt;top:-1pt;font-size:6.8pt;font-weight:700;color:var(--verm)}
+    .part{display:flex;align-items:center;gap:7pt;margin:2pt 0 7pt;break-after:avoid}
+    .part + .part, .cards + .part{margin-top:12pt}
+    .part .pk{font-size:9pt;font-weight:800;color:#fff;background:var(--verm);border-radius:2pt;padding:1pt 5.5pt}
+    .part .pt{font-size:10.5pt;font-weight:800}
+    .part .pd{font-size:7.6pt;color:var(--faint)}
+    .part i{flex:1;height:.6pt;background:var(--rule2);display:block}
+    .part .sc{font-size:7.6pt;color:var(--ink2);border:.6pt solid var(--rule2);padding:1pt 6pt;border-radius:2pt}
+    .brk{break-before:page}
+    .bq{column-count:2;column-gap:10pt;column-rule:.5pt solid var(--rule)}
+    .bq > div{break-inside:avoid;display:flex;gap:5pt;margin-bottom:5.5pt;padding-bottom:5pt;border-bottom:.5pt dotted var(--rule2)}
+    .bq .cid{flex:none;min-width:17pt}
+    .bq .bt{flex:1}
+    .bq .bt div + div{margin-top:1.5pt}
+    .bq .bt .n{color:var(--ink2);font-size:8.1pt}
+    .bq .bt .tg{font-size:6.4pt;font-weight:700;color:var(--verm);border:.5pt solid var(--verm);border-radius:2pt;padding:0 2.5pt;margin-right:3pt;vertical-align:.8pt}
+    .bq .aw{margin-top:3pt;display:flex;align-items:flex-end;gap:4pt;font-size:7pt;color:var(--faint)}
+    .bq .aw span{flex:1;border-bottom:.8pt solid var(--ink);height:11pt;max-width:120pt}
+    .rc{column-count:2;column-gap:10pt;column-rule:.5pt solid var(--rule)}
+    .rc > div{break-inside:avoid;margin-bottom:8pt}
+    .rc .rh{display:flex;align-items:center;gap:5pt;border-bottom:1pt solid var(--ink);padding-bottom:2pt}
+    .rc .rh b{font-size:9.4pt;font-weight:800}
+    .rc .rh em{margin-left:auto;font-style:normal;font-size:7.2pt;font-weight:700;color:var(--verm)}
+    .rc .wl{height:15.5pt;border-bottom:.5pt dotted var(--rule2);font-size:6.8pt;color:var(--rule2);padding-top:5pt}
+    .akb{column-count:4;column-gap:9pt;font-size:7.8pt}
+    .akb div{break-inside:avoid;margin-bottom:1.8pt}
+    .akb .cid{display:inline-block;width:19pt}
+    .akc{column-count:2;column-gap:12pt;column-rule:.5pt solid var(--rule);font-size:7.7pt}
+    .akc > div{break-inside:avoid;margin-bottom:4pt}
+    .akc .an{font-weight:800}
+    .akc .x{color:var(--ink2)}
+    .akc .x s{text-decoration:none;color:var(--rule2);padding:0 2pt}
+    .akc .x i{font-style:normal;font-size:6.4pt;font-weight:700;color:var(--verm)}
+    .ah{font-size:8.2pt;font-weight:800;color:var(--verm);margin:7pt 0 4pt;break-after:avoid}
     .ans .unit + .unit{break-before:auto;margin-top:12pt}
     .ak{column-count:2;column-gap:12pt;column-rule:.5pt solid var(--rule);font-size:8pt}
     .ak div{break-inside:avoid;margin-bottom:3.2pt;padding-left:20pt;text-indent:-20pt}
@@ -416,15 +563,20 @@ def html_doc(units, data, stat):
     body = []
     n_cards = stat["cards"]; n_bl = stat["blanks"]; n_nm = stat["names"]
     body.append(
-        '<div class="cover"><h1>지역 이해 · 학습지 전수 점검</h1>'
-        '<div class="sub">2026학년도 2학기 · 시험 범위 학습지의 본문과 각주를 한 문장도 빼지 않고 실었습니다</div>'
+        '<div class="cover"><h1>지역 이해 · 학습지 전수 점검 <span style="color:var(--verm)">v2</span></h1>'
+        '<div class="sub">2026학년도 2학기 · 시험 범위 학습지의 본문과 각주를 한 문장도 빼지 않고, 세 방향으로 묻습니다</div>'
         f'<div class="scope"><span>범위 <b>학습지 1~11쪽 · 23~34쪽</b></span>'
-        f'<span>카드 <b>{n_cards}</b>장</span><span>이름 칸 <b>{n_nm}</b></span>'
-        f'<span>빈칸 <b>{n_bl}</b></span><span>문장 <b>{stat["lines"]}</b>줄</span></div></div>'
-        '<div class="how"><b>푸는 법</b> — 카드 하나가 학습지 항목 하나입니다. '
-        '<b>밑줄 칸</b>에는 지도 번호와 설명을 보고 지명·용어를 쓰고, <b>①②③ 칸</b>에는 빠진 말을 씁니다. '
-        '본문에 나온 이름은 ○○로 가렸습니다. 빈칸은 선생님이 학습지에서 비워 둔 자리를 먼저 골랐습니다. '
-        '정답은 맨 뒤에 있고, 웹 앱의 <b>전수 점검</b>도 같은 번호·같은 문항입니다.</div>')
+        f'<span>A 빈칸 <b>{n_cards}</b>카드 · 빈칸 <b>{n_bl}</b></span>'
+        f'<span>B 특징→이름 <b>{stat["b"]}</b>문항</span>'
+        f'<span>C 이름→특징 <b>{stat["c"]}</b>항목 · <b>{stat["c_lines"]}</b>가지</span></div></div>'
+        '<div class="how">단원마다 세 부분입니다. 한 문장이 A·B·C에 한 번씩, 모두 세 번 나옵니다.<br>'
+        '<b>A 빈칸 채우기</b> — 항목의 설명을 다 보여 주고 이름(밑줄)과 빠진 말(①②③)을 씁니다. '
+        '빈칸은 선생님이 학습지에서 비워 둔 자리를 먼저 골랐습니다.<br>'
+        '<b>B 특징 → 이름</b> — 문장 하나(혼자로는 가려지지 않으면 두세 줄)만 보고 어느 곳·어떤 용어의 설명인지 씁니다. '
+        '단원 안에서 순서를 섞었습니다. 기출의 “다음 설명에 해당하는 지역은?”과 같은 방향입니다.<br>'
+        '<b>C 이름 → 특징</b> — 이름만 보고 특징을 떠올려 씁니다. 몇 가지인지 적어 두었으니 개수를 채우세요. '
+        '채점은 정답과 견주어 떠올린 것에 동그라미를 칩니다.<br>'
+        '본문에 나온 이름은 ○○로 가렸습니다. 정답은 맨 뒤에 있고, 웹 앱의 <b>전수 점검</b>도 같은 번호·같은 문항입니다.</div>')
 
     for u in units:
         total = sum(len(cd["ans"]) + (1 if cd["hide"] else 0) for cd in u["cards"])
@@ -437,6 +589,8 @@ def html_doc(units, data, stat):
                 seen.append(cd["map"])
         for k in seen:
             body.append(map_html(k, u["cards"]))
+        body.append(f'<div class="part" id="A{u["no"]}"><span class="pk">A</span><span class="pt">{u["no"]} 빈칸 채우기</span>'
+                    f'<span class="pd">이름 칸 + ①②③</span><i></i><span class="sc">점수 &nbsp;&nbsp;&nbsp; / {total}</span></div>')
         body.append('<div class="cards">')
         for cd in u["cards"]:
             num = cd["id"].split("-")[1]
@@ -447,6 +601,32 @@ def html_doc(units, data, stat):
                 head = f'<span class="cid">{num}</span><span class="ttl">{esc(cd["title"])}</span>'
             body.append(f'<div class="card"><div class="ch">{head}</div>'
                         + "".join(line_html(ln, cd["ans"]) for ln in cd["lines"]) + "</div>")
+        body.append("</div>")
+
+        if u["b"]:
+            body.append(f'<div class="part brk"><span class="pk">B</span><span class="pt">{u["no"]} 특징 → 이름</span>'
+                        f'<span class="pd">어느 곳(무엇)의 설명인가</span><i></i>'
+                        f'<span class="sc">점수 &nbsp;&nbsp;&nbsp; / {len(u["b"])}</span></div><div class="bq">')
+            for q in u["b"]:
+                num = q["id"].split("-")[1]
+                ls = []
+                for l in q["lines"]:
+                    tg = (f'<span class="tg">{esc(l.get("tag") or "각주")}</span>' if l["k"] == "n" else "")
+                    ls.append(f'<div class="{"n" if l["k"] == "n" else ""}">{tg}{esc(l["t"])}</div>')
+                body.append(f'<div><span class="cid">{num}</span><div class="bt">{"".join(ls)}'
+                            f'<div class="aw">→<span></span></div></div></div>')
+            body.append("</div>")
+
+        body.append(f'<div class="part brk"><span class="pk">C</span><span class="pt">{u["no"]} 이름 → 특징</span>'
+                    f'<span class="pd">떠올려 쓰기 · 개수만큼</span><i></i>'
+                    f'<span class="sc">떠올린 수 &nbsp;&nbsp;&nbsp; / {sum(e["n"] for e in u["c"])}</span></div><div class="rc">')
+        for e in u["c"]:
+            it = byid[e["item"]]
+            num = e["id"].split("-")[1]
+            mref = f'<span class="mref">지도 {e["mnum"]}</span>' if e.get("map") else ""
+            wl = "".join(f'<div class="wl">{k + 1}</div>' for k in range(e["n"]))
+            body.append(f'<div><div class="rh"><span class="cid">{num}</span><b>{esc(it["name"])}</b>{mref}'
+                        f'<em>{e["n"]}가지</em></div>{wl}</div>')
         body.append("</div></section>")
 
     # 정답
@@ -455,14 +635,32 @@ def html_doc(units, data, stat):
                 '<div class="sub">카드 번호 · 이름 · 빈칸 순서. 채점할 때 옆 장을 가리고 보세요.</div></div>')
     for u in units:
         body.append('<section class="unit">')
-        body.append(f'<div class="uhead"><span class="uno">{u["no"]}</span><span class="utitle">{esc(u["title"])}</span></div>')
-        body.append('<div class="ak">')
+        body.append(f'<div class="uhead"><span class="uno">{u["no"]}</span><span class="utitle">정답 · {esc(u["title"])}</span></div>')
+        body.append('<div class="ah">A 빈칸 채우기</div><div class="ak">')
         for cd in u["cards"]:
             it = byid[cd["item"]]
             num = cd["id"].split("-")[1]
             nm = f'<span class="an">{esc(it["name"])}</span>' if cd["hide"] else f'<span class="an" style="font-weight:400;color:var(--faint)">{esc(it["name"])}</span>'
             xs = " ".join(f'<b>{circ(i)}</b> {esc(a)}' for i, a in enumerate(cd["ans"]))
             body.append(f'<div><span class="cid">{num}</span>{nm} <span class="x">{xs}</span></div>')
+        body.append("</div>")
+        if u["b"]:
+            body.append('<div class="ah">B 특징 → 이름</div><div class="akb">')
+            for q in u["b"]:
+                names = []
+                for a in q["ans"]:
+                    if byid[a]["name"] not in names:
+                        names.append(byid[a]["name"])
+                body.append(f'<div><span class="cid">{q["id"].split("-")[1]}</span>{esc(" / ".join(names))}</div>')
+            body.append("</div>")
+        body.append('<div class="ah">C 이름 → 특징</div><div class="akc">')
+        for e in u["c"]:
+            it = byid[e["item"]]
+            xs = "<s>·</s>".join(esc(f) for f in it["features"])
+            if it["notes"]:
+                xs += "<s>·</s>" + "<s>·</s>".join(f'<i>각주</i> {esc(n)}' for n in it["notes"])
+            body.append(f'<div><span class="cid">{e["id"].split("-")[1]}</span><span class="an">{esc(it["name"])}</span> '
+                        f'<span class="x">{xs}</span></div>')
         body.append("</div></section>")
     body.append("</div>")
 
@@ -470,10 +668,47 @@ def html_doc(units, data, stat):
             f'<body>{"".join(body)}</body></html>')
 
 
+def add_toc(path, units):
+    """굿노트·PDF 뷰어의 목차(책갈피) — 단원마다 A·B·C 와 정답으로 바로 간다."""
+    import pymupdf
+    doc = pymupdf.open(path)
+    def find(label, start=0):
+        for i in range(start, doc.page_count):
+            if doc[i].search_for(label):
+                return i
+        return None
+    toc, at = [], 0
+    for u in units:
+        first = None
+        rows = []
+        for key, label in (("A", "빈칸 채우기"), ("B", "특징 → 이름"), ("C", "이름 → 특징")):
+            pg = find(f'{u["no"]} {label}', at)
+            if pg is None:
+                continue
+            first = pg if first is None else first
+            rows.append([2, f"{key} {label}", pg + 1])
+            at = pg
+        if first is not None:
+            toc.append([1, f'{u["no"]} {u["title"]}', first + 1])
+            toc += rows
+    ans = find("정답 · " + units[0]["title"], at)
+    if ans is not None:
+        toc.append([1, "정답", ans + 1])
+        for u in units:
+            pg = find("정답 · " + u["title"], ans)
+            if pg is not None:
+                toc.append([2, f'{u["no"]} {u["title"]}', pg + 1])
+    doc.set_toc(toc)
+    tmp = path + ".tmp"
+    doc.save(tmp, garbage=3, deflate=True)
+    doc.close()
+    os.replace(tmp, path)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", help="학습지 원본 PDF — 주면 빈칸 정답을 다시 뽑는다")
-    ap.add_argument("--out", default=os.path.join(ROOT, "docs", "지역이해-점검시험.pdf"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "docs", "지역이해-점검시험-v2.pdf"))
     ap.add_argument("--no-pdf", action="store_true")
     a = ap.parse_args()
 
@@ -488,9 +723,13 @@ def main():
 
     data = dump_items()
     units, stat = build(data, blanks)
+    xstat = build_cross(data, units)
+    stat.update(xstat)
     write_js(units)
     print(f"data/sheet.js  카드 {stat['cards']} · 이름 칸 {stat['names']} · 빈칸 {stat['blanks']} · "
-          f"문장 {stat['lines']}(빈칸 없는 문장 {stat['bare']})")
+          f"문장 {stat['lines']}(빈칸 없는 문장 {stat['bare']})\n"
+          f"               B 특징→이름 {stat['b']}문항(정답 여럿 {stat['b_multi']}) · "
+          f"C 이름→특징 {stat['c']}항목 {stat['c_lines']}가지")
     if a.no_pdf:
         return
 
@@ -501,7 +740,8 @@ def main():
         render_pdf(tmp, a.out)
     finally:
         os.remove(tmp)
-    stamp_footer(a.out, "2026 지역 이해 · 학습지 전수 점검 (학습지 1~11쪽, 23~34쪽 · 각주 포함)")
+    stamp_footer(a.out, "2026 지역 이해 · 학습지 전수 점검 v2 (학습지 1~11쪽, 23~34쪽 · 각주 포함)")
+    add_toc(a.out, units)
     import pymupdf
     print(f"{os.path.relpath(a.out, ROOT)}  {pymupdf.open(a.out).page_count}쪽  {os.path.getsize(a.out)//1024}KB")
 
