@@ -14,6 +14,7 @@ OUT  = os.path.join(ROOT, "지역이해-암기퀴즈.html")
 
 html  = open(os.path.join(ROOT, "index.html"), encoding="utf-8").read()
 items = open(os.path.join(ROOT, "data", "items.js"), encoding="utf-8").read()
+sheet = open(os.path.join(ROOT, "data", "sheet.js"), encoding="utf-8").read()   # tools/make_test.py 가 만든다
 
 paths = re.findall(r'image:\s*"(assets/maps/[^"]+)"', items)
 if not paths:
@@ -26,15 +27,17 @@ for p in paths:
 # module.exports 줄 제거 (줄 전체를 지운다 — 예전에 정규식이 줄을 반쯤 잘라
 # 문법 오류를 만든 적이 있어, 아래에서 node로 반드시 검사한다)
 items = re.sub(r'^.*typeof module.*$', '', items, flags=re.M)
+sheet = re.sub(r'^.*typeof module.*$', '', sheet, flags=re.M)
 
 single = html.replace('<script src="data/items.js"></script>', "<script>\n" + items + "\n</script>")
-if 'src="data/items.js"' in single or "assets/maps/" in single:
+single = single.replace('<script src="data/sheet.js"></script>', "<script>\n" + sheet + "\n</script>")
+if 'src="data/' in single or "assets/maps/" in single:
     sys.exit("외부 파일 참조가 남아 있습니다.")
 
 # ── 합친 결과가 실제로 실행 가능한지 검사 ──────────────────────
 import subprocess, tempfile, shutil
 scripts = re.findall(r"<script>(.*?)</script>", single, flags=re.S)
-if len(scripts) < 2:
+if len(scripts) < 3:
     sys.exit("script 블록을 찾지 못했습니다.")
 node = shutil.which("node") or shutil.which("bun")
 if node:
@@ -49,7 +52,7 @@ if node:
 else:
     print("경고: node/bun 이 없어 문법 검사를 건너뜁니다.")
 
-for need in ("const ITEMS", "const UNITS", "const MAPS", "function home()"):
+for need in ("const ITEMS", "const UNITS", "const MAPS", "const SHEET", "function home()", "function sheetHome()"):
     if need not in single:
         sys.exit(f"'{need}' 가 결과물에 없습니다.")
 

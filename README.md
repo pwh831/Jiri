@@ -157,6 +157,26 @@ python3 tools/extract_maps.py <학습지 원본 PDF>
 python3 tools/fit_markers.py <옛 지도> <새 지도> --write
 ```
 
+## 전수 점검 시험지 (PDF + 웹)
+
+`docs/지역이해-점검시험.pdf` — 시험 범위 학습지의 **본문과 각주 652문장을 한 번씩 모두** 실은 시험지.
+웹 앱 홈의 **학습지 전수 점검**이 같은 카드·같은 번호로 되어 있습니다.
+
+```bash
+python3 tools/make_test.py                  # data/sheet.js + PDF
+python3 tools/make_test.py --src 원본.pdf   # 학습지 원본에서 빈칸 정답을 다시 뽑을 때
+```
+
+- 항목 하나 = 카드 하나(179장). 지명·용어 카드는 **이름 칸**(145개)을 비우고, 본문에 나온 이름은 ○○로 가립니다
+- 문장 속 **①②③ 빈칸**(442개)은 선생님이 학습지에서 비워 둔 자리를 먼저 고릅니다.
+  학습지 원본 PDF에 그 답이 흰 글씨로 들어 있어 뽑아 `data/blanks.json`에 두었습니다.
+  문장마다 원본의 몇 쪽에 있는지 찾아 그 쪽의 빈칸만 씁니다
+- 학습지 빈칸이 안 걸리는 문장은 다른 항목의 이름(지명·용어) → 숫자 순으로 비우고,
+  그것도 없으면 이름을 맞히는 단서로만 둡니다(281문장)
+- 단원마다 지도를 먼저 싣고(17개 시·도 지도에는 번호를 새로 찍음), 맨 뒤에 정답지
+- 웹은 칸마다 입력하고 채점합니다. 띄어쓰기·가운뎃점·괄호 속 말은 따지지 않고, 4글자 이상은 한 글자 오타를 봐줍니다.
+  틀린 카드는 오답 노트에도 들어가고, 단원별로 '틀린 카드만' 다시 풀 수 있습니다
+
 ## 요약 PDF (굿노트용)
 
 `docs/지역이해-요약.pdf` — **시험 범위만** 추린 17쪽짜리 요약본(8단원 179항목).
@@ -206,15 +226,19 @@ python3 tools/make_answer_maps.py
 ```
 index.html                  앱 전체 (UI + 퀴즈 엔진)
 data/items.js               문제 데이터 224항목 · 각주 77줄 · 묶음 20 · 헷갈리는 짝 28
+data/sheet.js               전수 점검 시험지 카드 179장 (tools/make_test.py 가 생성)
+data/blanks.json            학습지 원본의 빈칸 정답(흰 글씨) 쪽별 목록
 assets/maps/*               학습지 원본 PDF에서 뽑은 지도 10장
 tools/extract_maps.py       원본 PDF에서 퀴즈용 지도 추출
 tools/make_summary.py       시험 범위 요약 PDF 생성
+tools/make_test.py          전수 점검 시험지(data/sheet.js + PDF) 생성
 tools/fit_markers.py        지도가 바뀌었을 때 마커 좌표 옮기기
 tools/make_answer_maps.py   정답 지도 PDF 생성
 tools/places.py             지도에 찍을 곳의 위도·경도
 tools/fetch_boundaries.py   국내 행정 경계 내려받기·간략화
 data/geo/                   시·도 17개 · 시·군·구 250개 경계
 docs/지역이해-요약.pdf       시험 범위 요약 (A4 세로 17쪽)
+docs/지역이해-점검시험.pdf   전수 점검 시험지 + 정답 (A4 세로 23쪽)
 docs/지역이해-정답지도.pdf   굿노트용 정답 지도 (A4 세로 9쪽)
 docs/PRD.md                 제품 요구사항 정의서
 docs/빈칸-정답-정리.md       빈칸 추론 내역과 원본 PDF 대조 결과
