@@ -287,6 +287,32 @@
   .wrongrow .r v{display:block;font-size:13px;color:var(--verm);margin-top:3px}
   .center{text-align:center;color:var(--ink2);font-size:14px;padding:8px 0}
 
+  /* 빼기 */
+  .meta .mr{display:flex;align-items:baseline;gap:12px}
+  .exbtn{border:1px solid var(--rule2);border-radius:2px;background:transparent;color:var(--faint);
+       font:500 11px var(--sans);padding:3px 8px;cursor:pointer;letter-spacing:0}
+  .exbtn:hover{border-color:var(--verm);color:var(--verm)}
+  .xmodal{position:fixed;inset:0;z-index:50;background:rgba(31,27,22,.42);display:flex;align-items:flex-end;justify-content:center}
+  .xmodal .box{width:100%;max-width:640px;background:var(--paper);border-top:2px solid var(--ink);
+       padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px))}
+  .xmodal h3{margin:0 0 6px;font:700 17px var(--serif)}
+  .xmodal p{margin:0 0 12px;font-size:13px;line-height:1.6;color:var(--ink2)}
+  .xmodal q{display:block;margin:0 0 14px;padding:10px 12px;border-left:3px solid var(--verm);background:var(--verm-t);
+       font:400 14px/1.55 var(--serif);color:var(--ink);quotes:none}
+  .xmodal .opt2{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px;min-height:52px;
+       border:1.5px solid var(--rule2);border-radius:2px;background:var(--card);cursor:pointer;color:var(--ink)}
+  .xmodal .opt2 b{display:block;font:600 14.5px var(--sans)}
+  .xmodal .opt2 small{display:block;font:400 12px var(--sans);color:var(--faint);margin-top:2px}
+  .xmodal .opt2:hover{border-color:var(--verm)}
+  .exb{border-bottom:1.5px dashed var(--rule2);color:var(--ink2);padding:0 2px}
+  .abx{min-height:30px;min-width:34px;margin:0 4px 4px 0;padding:0 8px;border:1px solid var(--rule2);border-radius:2px;
+       background:transparent;font:600 13px var(--sans);color:var(--ink2);cursor:pointer}
+  .abx.on{border-color:var(--verm);background:var(--verm-t);color:var(--verm);text-decoration:line-through}
+  .xrow{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--rule)}
+  .xrow .l{flex-grow:1;font-size:13.5px;line-height:1.5}
+  .xrow .l small{display:block;font:500 11px var(--mono);color:var(--faint);margin-bottom:2px}
+  .xrow button{flex:none}
+
   /* 학습지 전수 점검 */
   .sheetgo{display:flex;align-items:center;gap:12px;width:100%;padding:14px 15px;text-align:left;cursor:pointer;
        border:1.5px solid var(--ink);border-radius:2px;background:var(--card);color:var(--ink)}
@@ -389,6 +415,17 @@ try { store = JSON.parse(localStorage.getItem(LS) || "{}"); } catch(e){ store = 
 function stat(id){ return store[id] || (store[id] = {right:0, wrong:0, streak:0, last:0}); }
 function save(){ try{ localStorage.setItem(LS, JSON.stringify(store)); }catch(e){} }
 
+/* 뺀 문제 — 이상한 문제를 브라우저에 기억해 두고 다시 내지 않는다
+ *   s  : 문장(모든 유형에서 뺌)        key = norm(문장)
+ *   t  : 유형 + 항목                   key = 유형|항목 id
+ *   q  : 전수 점검 문항(A 카드·B·C)    key = 카드 id / B 의 k / C id
+ *   ab : 전수 점검 A 의 빈칸 하나      key = 카드 id#빈칸 번호 */
+const XLS = "jiri-exclude-v1";
+let EX = {s:{}, t:{}, q:{}, ab:{}};
+try { EX = Object.assign(EX, JSON.parse(localStorage.getItem(XLS) || "{}")); } catch(e){}
+const xsave = ()=>{ try{ localStorage.setItem(XLS, JSON.stringify(EX)); }catch(e){} };
+const exCount = ()=> ["s","t","q","ab"].reduce((n,k)=>n+Object.keys(EX[k]).length, 0);
+
 /* ---------- 정답 정규화 ---------- */
 const SUFFIX = ["특별자치도","특별자치시","광역시","특별시","자치도","반도","해협","제도","군도",
                 "산맥","고원","분지","평야","도시","시","군","구","도","강","해","호수","호","만","섬","양"];
@@ -459,6 +496,12 @@ const TYPES = [
 ];
 /* 기출이 실제로 묻는 형식. 특징을 '떠올리는' 문제는 기출에 없어 뺐다. */
 const EXAMTYPES = ["rfeat","combo","error","common","ox","name"];
+const ALLTYPES  = TYPES.map(t=>t.key).filter(k=>k!=="both" && k!=="exam");
+/* 유형은 여러 개를 함께 고른다. cfg.types 는 유형 key 배열(예전 문자열 값도 받아 준다) */
+const selTypes = () => Array.isArray(cfg.types) ? cfg.types
+  : cfg.types === "both" ? ALLTYPES : cfg.types === "exam" ? EXAMTYPES : [cfg.types];
+const onlyName = () => { const t = selTypes(); return t.length === 1 && t[0] === "name"; };
+const sameSet  = (a, b) => a.length === b.length && a.every(x=>b.includes(x));
 const countOf = k => ITEMS.filter(i=>i.category===k).length;
 const NOTECOUNT = ITEMS.reduce((t,i)=>t+(i.notes||[]).length, 0);
 document.getElementById("eyebrow").textContent = `2026 · ${ITEMS.length} ITEMS`;
@@ -472,7 +515,7 @@ const unitCount = u => (u.exam === false ? u.cats : u.cats.filter(catInExam))
 const inExam    = u => u.exam !== false;
 const catInExam = k => { const c = CATS.find(x=>x.key===k); return !!c && c.exam !== false; };
 const EXAMCATS  = UNITS.filter(inExam).flatMap(u=>u.cats).filter(catInExam);
-let cfg = { cats: [...EXAMCATS], types:"exam", count:20, order:"weak", notes:true };
+let cfg = { cats: [...EXAMCATS], types:[...EXAMTYPES], count:20, order:"weak", notes:true };
 let quiz = null;
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -517,11 +560,11 @@ function warnHTML(picked){
   if(!picked) return "";
   const inRange = ITEMS.filter(i=>cfg.cats.includes(i.category));
   const msg =
-    cfg.types === "name" && !inRange.some(hasMap)
+    onlyName() && !inRange.some(hasMap)
       ? "고른 범위에는 지도가 없어 '지도 → 지명'으로 낼 문제가 없습니다. 다른 유형을 골라 주세요."
-    : cfg.types !== "name" && !inRange.some(i=>feats(i).length)
+    : !onlyName() && !inRange.some(i=>feats(i).length)
       ? "고른 범위에는 학습지에 적힌 특징이 없어 '지도 → 지명'으로만 출제됩니다."
-    : cfg.types === "name" && inRange.some(i=>!hasMap(i))
+    : onlyName() && inRange.some(i=>!hasMap(i))
       ? `개념·용어 · 전통 구분 · 개관은 지도가 없어 이 유형에서는 빠집니다(${inRange.filter(hasMap).length}항목 출제).`
     : "";
   if(!msg) return "";
@@ -548,7 +591,7 @@ function home(){
   <div class="block">
     <button class="sheetgo" id="sheetGo">
       <span class="t">학습지 전수 점검 v2<small>본문·각주 ${SHEETSTAT.lines}문장 · 빈칸 / 특징→이름 / 이름→특징</small></span>
-      <span class="p">${sheetDone()} / ${SHEETSTAT.all}</span>
+      <span class="p">${sheetDone()} / ${sheetAll()}</span>
     </button>
   </div>
 
@@ -557,9 +600,15 @@ function home(){
   <div class="block">
     <div class="sec"><span>출제 설정</span><i></i></div>
     <div class="types" id="types" style="margin-bottom:9px">
-      ${TYPES.map(t=>`<button class="chip ${t.big?"wide ":""}${cfg.types===t.key?"on":""}" data-t="${t.key}">${t.label}
-        <small>${t.hint}</small></button>`).join("")}
+      ${TYPES.map(t=>{
+        const on = t.key==="exam" ? sameSet(selTypes(), EXAMTYPES)
+                 : t.key==="both" ? sameSet(selTypes(), ALLTYPES)
+                 : selTypes().includes(t.key);
+        return `<button class="chip ${t.big?"wide ":""}${on?"on":""}" data-t="${t.key}">${t.label}
+        <small>${t.hint}</small></button>`; }).join("")}
     </div>
+    <div class="hint" style="margin:-2px 0 10px;font-size:12px;color:var(--faint)">
+      유형은 여러 개를 함께 고를 수 있습니다 · 지금 ${selTypes().length}가지를 섞어서 냅니다</div>
     <div class="grid g4" id="counts" style="margin-bottom:9px">
       ${[10,20,30,999].map(n=>`<button class="chip ${cfg.count===n?"on":""} ${n===999?"":"mono"}" data-n="${n}">${n===999?"전체":n}</button>`).join("")}
     </div>
@@ -580,6 +629,7 @@ function home(){
     <button class="btn" id="start" ${playable?"":"disabled"}>시작하기<small>${
       playable ? (cfg.count===999?playable+"문항":Math.min(cfg.count,playable)+"문항") : "낼 문제가 없습니다"}</small></button>
     ${wrong?`<button class="btn2 verm" id="wrongOnly">오답 노트 다시 풀기 <span class="mono">${wrong}</span></button>`:""}
+    ${exCount()?`<button class="btn2" id="exlist">뺀 문제 <span class="mono">${exCount()}</span> · 보기·되돌리기</button>`:""}
     <button class="btn2" id="reset" style="border:0;color:var(--faint);font-size:12.5px;min-height:36px">기록 초기화</button>
   </div>`;
 
@@ -610,12 +660,24 @@ function home(){
       return home();
     }
   };
-  document.getElementById("types").onclick  = e=>{ const el=e.target.closest(".chip"); if(el){cfg.types=el.dataset.t; home();} };
+  document.getElementById("types").onclick  = e=>{
+    const el = e.target.closest(".chip"); if(!el) return;
+    const k = el.dataset.t;
+    if(k === "exam") cfg.types = [...EXAMTYPES];
+    else if(k === "both") cfg.types = [...ALLTYPES];
+    else {
+      const cur = selTypes();
+      const next = cur.includes(k) ? cur.filter(x=>x!==k) : [...cur, k];
+      cfg.types = next.length ? next : [k];             // 하나는 남긴다
+    }
+    home();
+  };
   document.getElementById("counts").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.count=+el.dataset.n; home();} };
   document.getElementById("orders").onclick = e=>{ const el=e.target.closest(".chip"); if(el){cfg.order=el.dataset.o; home();} };
   document.getElementById("notetog").onclick = ()=>{ cfg.notes = !cfg.notes; buildOwners(); home(); };
   document.getElementById("start").onclick  = ()=>begin(pool());
   document.getElementById("sheetGo").onclick = sheetHome;
+  const xl = document.getElementById("exlist"); if(xl) xl.onclick = ()=>exHome(home);
   const wo = document.getElementById("wrongOnly");
   if(wo) wo.onclick = ()=>begin(ITEMS.filter(i=>{ const s=store[i.id]; return s && s.wrong>0 && s.streak<3; }), true);
   document.getElementById("reset").onclick = ()=>{
@@ -627,7 +689,8 @@ function pool(){
   let p = ITEMS.filter(i=>cfg.cats.includes(i.category))
                .filter(i=>hasMap(i) || feats(i).length);   // 지도도 특징도 없으면 낼 문제가 없다
   // '지도 → 지명'만 고른 경우 지도가 있는 항목만 낸다 (개념·용어, 전통 구분, 개관은 제외)
-  if(cfg.types === "name") p = p.filter(hasMap);
+  if(onlyName()) p = p.filter(hasMap);
+  p = p.filter(i=>selTypes().some(t=>canDo(i, t)));     // 고른 유형 중 하나라도 낼 수 있는 항목만
   if(!p.length) return p;
   if(cfg.order==="weak"){
     p = p.map(i=>{
@@ -649,7 +712,8 @@ function begin(list, isReview){
 
 /* 출제 대상 서술: 본문(features) + '각주 포함'을 켰을 때만 각주(notes) */
 function feats(i){
-  return cfg.notes ? [...(i.features||[]), ...(i.notes||[])] : (i.features||[]);
+  const all = cfg.notes ? [...(i.features||[]), ...(i.notes||[])] : (i.features||[]);
+  return all.filter(f=>!EX.s[norm(f)]);                  // 뺀 문장은 어떤 문제에도 쓰지 않는다
 }
 /* 학습지 각주에서 온 서술인지 (정답 카드에 표시용) */
 const isNote = (i, f) => (i.notes||[]).includes(f);
@@ -685,6 +749,7 @@ buildOwners();
 /* 항목마다 낼 수 있는 유형이 다르다. 지도가 없으면 지도 문제를, 특징이 하나뿐이면
  * 보기 조합을, 묶이는 속성이 없으면 공통점 문제를 낼 수 없다. */
 function canDo(item, type){
+  if (EX.t[type + "|" + item.id]) return false;          // 이 유형에서 뺀 항목
   const n = feats(item).length;
   if (type === "name")   return hasMap(item);
   if (type === "combo")  return n >= 2 && pickFalse(item, 2).length >= 2;
@@ -694,12 +759,8 @@ function canDo(item, type){
 }
 
 function makeQ(item){
-  let type = cfg.types;
-  if (type === "both" || type === "exam"){
-    const menu = (type === "exam" ? EXAMTYPES : TYPES.map(t=>t.key).filter(k=>k!=="both"&&k!=="exam"))
-                   .filter(k=>canDo(item, k));
-    type = menu.length ? menu[Math.random()*menu.length|0] : "name";
-  }
+  const menu = selTypes().filter(k=>canDo(item, k));
+  let type = menu.length ? menu[Math.random()*menu.length|0] : selTypes()[0];
   if (!canDo(item, type)){                    // 고른 유형을 낼 수 없으면 낼 수 있는 것으로
     const alt = ["rfeat","ox","feat","name","recall"].filter(k=>canDo(item, k));
     type = alt.length ? alt[0] : "name";
@@ -859,7 +920,8 @@ function headHTML(){
   const pad = String(quiz.at+1).padStart(2,"0");
   return `${rulerHTML()}
     <div class="meta"><span>${pad} / ${quiz.qs.length}${quiz.review?" · 오답":""}</span>
-      <em>정답 <b>${quiz.right}</b></em></div>`;
+      <span class="mr"><button class="exbtn" id="exq" type="button" title="이상한 문제를 다시 내지 않기">빼기</button>
+      <em>정답 <b>${quiz.right}</b></em></span></div>`;
 }
 function mapHTML(item){
   const m = MAPS[item.map];
@@ -1368,17 +1430,22 @@ try { sstore = JSON.parse(localStorage.getItem(SLS) || "{}"); } catch(e){ sstore
 const ssave = ()=>{ try{ localStorage.setItem(SLS, JSON.stringify(sstore)); }catch(e){} };
 const CIRC = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
 const circ = n => CIRC[n] || `(${n+1})`;
-const cardMax = c => c.ans.length + (c.hide ? 1 : 0);
+const abOff = (c, i) => !!EX.ab[c.id + "#" + i];
+const cardMax = c => c.ans.filter((_,i)=>!abOff(c,i)).length + (c.hide ? 1 : 0);
 const PARTS = [
   {k:"A", label:"빈칸 채우기",  hint:"이름 칸 + ①②③", get:u=>u.cards},
   {k:"B", label:"특징 → 이름",  hint:"문장을 보고 어디인지", get:u=>u.b},
   {k:"C", label:"이름 → 특징",  hint:"이름을 보고 꺼내기", get:u=>u.c},
 ];
 const qMax = (part, q) => part==="A" ? cardMax(q) : part==="B" ? 1 : q.n;
-const SHEETSTAT = (()=>{ let cards=0, lines=0, all=0;
-  for(const u of SHEET){ for(const c of u.cards){ cards++; lines+=c.lines.length; } all += u.cards.length+u.b.length+u.c.length; }
-  return {cards, lines, all}; })();
-const sheetDone = () => SHEET.reduce((t,u)=>t+[...u.cards,...u.b,...u.c].filter(q=>sstore[q.id]).length, 0);
+const qKey = (part, q) => part==="B" ? q.k : q.id;          // B 는 내용으로 기억(번호가 바뀌어도 유지)
+const live = (P, u) => P.get(u).map((_,i)=>i).filter(i=>!EX.q[qKey(P.k, P.get(u)[i])]);
+const SHEETSTAT = (()=>{ let cards=0, lines=0;
+  for(const u of SHEET) for(const c of u.cards){ cards++; lines+=c.lines.length; }
+  return {cards, lines}; })();
+const sheetAll  = () => SHEET.reduce((t,u)=>t+PARTS.reduce((n,P)=>n+live(P,u).length, 0), 0);
+const sheetDone = () => SHEET.reduce((t,u)=>t+PARTS.reduce((n,P)=>
+  n+live(P,u).filter(i=>sstore[qKey(P.k, P.get(u)[i])]).length, 0), 0);
 const cardOk = c => { const r = sstore[c.id]; return !!r && r.got === r.max; };
 let sq = null;   // {u, part, list:[문항 번호], at}
 
@@ -1395,12 +1462,13 @@ function sheetHome(){
   document.onkeydown = null; sq = null;
   const rows = SHEET.map((u,ui)=>{
     const btns = PARTS.map(P=>{
-      const qs = P.get(u);
+      const qs = live(P,u).map(i=>P.get(u)[i]);
+      const K = q => qKey(P.k, q);
       if(!qs.length) return `<button class="pbtn" disabled><span class="pk">${P.k}</span><span class="pl">${P.label}</span><span class="pn">문항 없음</span></button>`;
-      const done = qs.filter(q=>sstore[q.id]).length;
-      const got  = qs.reduce((t,q)=>t+(sstore[q.id]?sstore[q.id].got:0), 0);
+      const done = qs.filter(q=>sstore[K(q)]).length;
+      const got  = qs.reduce((t,q)=>t+(sstore[K(q)]?Math.min(sstore[K(q)].got, qMax(P.k,q)):0), 0);
       const max  = qs.reduce((t,q)=>t+qMax(P.k,q), 0);
-      const bad  = qs.filter(q=>sstore[q.id] && sstore[q.id].got < sstore[q.id].max).length;
+      const bad  = qs.filter(q=>sstore[K(q)] && sstore[K(q)].got < sstore[K(q)].max).length;
       return `<button class="pbtn" data-u="${ui}" data-p="${P.k}">
         <span class="pk">${P.k}</span>${bad?`<span class="rd">✕${bad}</span>`:""}
         <span class="pl">${P.label}</span>
@@ -1414,7 +1482,7 @@ function sheetHome(){
   }).join("");
   app.innerHTML = `
   <div class="block">
-    <div class="sec"><span>학습지 전수 점검 v2</span><i></i><em>${sheetDone()} / ${SHEETSTAT.all}</em></div>
+    <div class="sec"><span>학습지 전수 점검 v2</span><i></i><em>${sheetDone()} / ${sheetAll()}</em></div>
     <p style="margin:0 0 14px;font-size:13px;line-height:1.65;color:var(--ink2)">
       한 문장을 세 방향으로 묻습니다. <b>A</b> 설명을 다 보고 이름과 빈칸 채우기 ·
       <b>B</b> 문장 하나만 보고 어느 곳(무엇)인지 · <b>C</b> 이름만 보고 특징 꺼내기.
@@ -1423,19 +1491,21 @@ function sheetHome(){
   </div>
   <div class="stack">
     <button class="btn2" id="hm">처음으로</button>
+    ${Object.keys(EX.q).length+Object.keys(EX.ab).length ? `<button class="btn2" id="sexlist">뺀 문항 ${Object.keys(EX.q).length+Object.keys(EX.ab).length} · 보기·되돌리기</button>` : ""}
     <button class="btn2" id="sreset" style="border:0;color:var(--faint);font-size:12.5px;min-height:36px">점검 기록 초기화</button>
   </div>`;
   app.querySelectorAll(".pbtn[data-p]").forEach(b=>b.onclick=()=>{
-    const ui = +b.dataset.u, part = b.dataset.p, qs = PARTS.find(P=>P.k===part).get(SHEET[ui]);
-    const bad = qs.map((_,i)=>i).filter(i=>{ const r=sstore[qs[i].id]; return r && r.got < r.max; });
-    const all = qs.map((_,i)=>i);
-    const first = all.findIndex(i=>!sstore[qs[i].id]);
+    const ui = +b.dataset.u, part = b.dataset.p, P = PARTS.find(x=>x.k===part), qs = P.get(SHEET[ui]);
+    const all = live(P, SHEET[ui]);
+    const bad = all.filter(i=>{ const r=sstore[qKey(part, qs[i])]; return r && r.got < r.max; });
+    const k = all.findIndex(i=>!sstore[qKey(part, qs[i])]);
     // 다 풀었고 틀린 게 있으면 틀린 것만, 아니면 안 푼 곳부터
-    if(first < 0 && bad.length) sq = {u:ui, part, list:bad, at:0, redo:true};
-    else sq = {u:ui, part, list:all, at: first<0 ? 0 : first};
+    if(k < 0 && bad.length) sq = {u:ui, part, list:bad, at:0, redo:true};
+    else sq = {u:ui, part, list:all, at: k<0 ? 0 : k};
     sheetGo();
   });
   document.getElementById("hm").onclick = home;
+  const sx = document.getElementById("sexlist"); if(sx) sx.onclick = ()=>exHome(sheetHome);
   document.getElementById("sreset").onclick = ()=>{
     if(confirm("전수 점검 기록을 모두 지웁니다. 계속할까요?")){ sstore={}; ssave(); sheetHome(); }
   };
@@ -1456,7 +1526,8 @@ function sheetTop(title){
     <div class="ruler">${sq.list.length <= 80
       ? sq.list.map((i,k)=>`<s class="${k<sq.at?"d":""}${k===sq.at?" c":""}"></s>`).join("")
       : `<s class="d" style="flex-grow:${sq.at}"></s><s class="c" style="flex-grow:.4"></s><s style="flex-grow:${sq.list.length-sq.at-1}"></s>`}</div>
-    <div class="meta"><span>${u.no} · ${P.k} ${P.label}${sq.redo?" · 틀린 것":""}</span><em>${pad} / ${sq.list.length}</em></div>
+    <div class="meta"><span>${u.no} · ${P.k} ${P.label}${sq.redo?" · 틀린 것":""}</span>
+      <span class="mr"><button class="exbtn" id="exs" type="button" title="이상한 문항을 다시 내지 않기">빼기</button><em>${pad} / ${sq.list.length}</em></span></div>
   </div>`;
 }
 
@@ -1480,7 +1551,9 @@ function sheetCard(){
   const u = SHEET[sq.u], c = u.cards[sq.list[sq.at]], it = BYID[c.item];
   const num = c.id.split("-")[1];
   const lines = c.lines.map(ln=>{
-    const body = ln.p.map(p=> typeof p === "number"
+    const body = ln.p.map(p=> typeof p === "number" && abOff(c, p)
+      ? `<span class="exb" title="뺀 빈칸">${esc(c.ans[p])}</span>`
+      : typeof p === "number"
       ? `<span class="czn">${circ(p)}</span><input class="cz" data-i="${p}" autocomplete="off" autocapitalize="off"
            spellcheck="false" style="width:${Math.min(16, Math.max(3.2, c.ans[p].replace(/\s/g,"").length*1.15+1.2))}em">`
       : esc(p)).join("");
@@ -1554,9 +1627,23 @@ function gradeCard(){
   const max = cardMax(c);
   sstore[c.id] = {got, max, t: Date.now()}; ssave();
   record(it, got === max);
+  const idxs = c.ans.map((_,i)=>i).filter(i=>!abOff(c,i));
   document.getElementById("sres").innerHTML = `<div class="sgrade">
     <span>${wrong.length ? "틀린 칸 " + wrong.join(" ") : "모두 맞음"}</span>
-    <span><b class="${got===max?"full":""}">${got}</b> / ${max}</span></div>`;
+    <span><b class="${got===max?"full":""}" id="agot">${got}</b> / <span id="amax">${max}</span></span></div>
+    ${idxs.length ? `<div style="margin-top:12px;font:500 11.5px var(--sans);color:var(--faint)">이상한 빈칸은 눌러서 빼기 — 다음부터는 답이 보이는 채로 나옵니다</div>
+    <div style="margin-top:6px">${idxs.map(i=>`<button class="abx" data-i="${i}">${circ(i)} ${esc(c.ans[i])}</button>`).join("")}</div>` : ""}`;
+  document.querySelectorAll(".abx").forEach(bt=>bt.onclick=()=>{
+    const i = +bt.dataset.i, key = c.id + "#" + i;
+    if(EX.ab[key]) delete EX.ab[key]; else EX.ab[key] = {ans:c.ans[i], card:c.id, name:it.name};
+    xsave(); bt.classList.toggle("on", !!EX.ab[key]);
+    // 뺀 빈칸은 점수에서도 뺀다
+    let g = 0;
+    if(c.hide && document.getElementById("nmrow").classList.contains("ok")) g++;
+    app.querySelectorAll(".cz.ok").forEach(el=>{ if(!abOff(c, +el.dataset.i)) g++; });
+    sstore[c.id] = {got:g, max:cardMax(c), t:Date.now()}; ssave();
+    document.getElementById("agot").textContent = g; document.getElementById("amax").textContent = cardMax(c);
+  });
   const last = sq.at + 1 >= sq.list.length;
   document.getElementById("sbtns").innerHTML = `
     <button class="btn2" id="slist">목록</button>
@@ -1606,7 +1693,7 @@ function gradeB(){
   document.getElementById("nmv").innerHTML = hit
     ? `<span style="color:var(--moss)">${hit==="typo"?"맞음(오타) · "+esc(names):"맞음"}</span>`
     : `<span style="color:var(--verm)">${esc(names)}</span>`;
-  sstore[q.id] = {got: hit?1:0, max:1, t:Date.now()}; ssave();
+  sstore[q.k] = {got: hit?1:0, max:1, t:Date.now()}; ssave();
   record(its[0], !!hit);
   if(!hit) document.getElementById("sres").innerHTML =
     `<div class="allfeat" style="margin-top:14px"><lbl>${esc(its[0].name)}의 다른 특징</lbl>${
@@ -1660,6 +1747,90 @@ function showC(){
     sq.at++; sheetGo();
   };
   document.getElementById("sres").scrollIntoView({block:"nearest", behavior:"smooth"});
+}
+
+/* ---------- 빼기 ---------- */
+function xmodal(title, desc, quote, options){
+  const m = document.createElement("div");
+  m.className = "xmodal";
+  m.innerHTML = `<div class="box"><h3>${esc(title)}</h3>${desc?`<p>${esc(desc)}</p>`:""}
+    ${quote?`<q>${esc(quote)}</q>`:""}
+    ${options.map((o,i)=>`<button class="opt2" data-i="${i}"><b>${esc(o.label)}</b>${o.hint?`<small>${esc(o.hint)}</small>`:""}</button>`).join("")}
+    <button class="btn2" data-x="1">그만두기</button></div>`;
+  const close = ()=>{ m.remove(); document.onkeydown = keep; };
+  const keep = document.onkeydown; document.onkeydown = null;
+  m.onclick = e=>{
+    if(e.target === m || e.target.closest("[data-x]")) return close();
+    const b = e.target.closest(".opt2"); if(!b) return;
+    m.remove(); document.onkeydown = keep; options[+b.dataset.i].run();
+  };
+  document.body.appendChild(m);
+}
+
+function dropCurrentQ(){
+  document.onkeydown = null;
+  if(quiz.log.length > quiz.at){ const l = quiz.log.pop(); if(l.ok) quiz.right--; }   // 이미 답했으면 점수에서 뺀다
+  quiz.qs.splice(quiz.at, 1);
+  if(quiz.at < quiz.qs.length) render();
+  else if(quiz.qs.length) result();
+  else home();
+}
+
+function excludeQuiz(){
+  const q = quiz.qs[quiz.at], it = q.item;
+  const TL = (TYPES.find(t=>t.key===q.type)||{label:q.type}).label;
+  const sent = q.type==="feat" ? (q.opts.find(o=>o.ok)||{}).f
+             : q.type==="rfeat" ? q.clue
+             : q.type==="ox" ? q.stmt : null;
+  const opts = [];
+  if(sent) opts.push({label:"이 문장 빼기", hint:"모든 유형의 문제와 보기에서 이 문장을 쓰지 않습니다",
+    run:()=>{ EX.s[norm(sent)] = {text:sent, name:it.name}; xsave(); buildOwners(); dropCurrentQ(); }});
+  opts.push({label:`'${it.name}'을(를) '${TL}'에서 빼기`, hint:"이 항목은 이 유형으로 다시 나오지 않습니다(다른 유형으로는 나옵니다)",
+    run:()=>{ EX.t[q.type + "|" + it.id] = {type:TL, name:it.name}; xsave(); dropCurrentQ(); }});
+  xmodal("이 문제 빼기", "이상한 문제를 다시 내지 않습니다. 홈의 '뺀 문제'에서 언제든 되돌릴 수 있습니다.", sent, opts);
+}
+
+function excludeSheet(){
+  const u = SHEET[sq.u], P = PARTS.find(x=>x.k===(sq.part||"A")), q = P.get(u)[sq.list[sq.at]];
+  const label = P.k==="A" ? `${q.id} ${BYID[q.item].name}`
+              : P.k==="B" ? `${q.id} ${q.lines.map(l=>l.t).join(" / ")}`
+              : `${q.id} ${BYID[q.item].name}`;
+  const quote = P.k==="B" ? q.lines.map(l=>l.t).join("\n") : BYID[q.item].name;
+  const opts = [{label: P.k==="A" ? "이 카드 통째로 빼기" : "이 문항 빼기",
+    hint: P.k==="A" ? "빈칸 하나만 빼려면 채점한 뒤 아래 빈칸 단추를 누르세요" : "점수·진행률에서도 빠집니다",
+    run:()=>{ EX.q[qKey(P.k, q)] = {part:P.k, label}; xsave();
+      sq.list.splice(sq.at, 1); sq.graded = false; document.onkeydown = null; sheetGo(); }}];
+  xmodal(`${P.k} ${P.label} — 빼기`, "홈의 '뺀 문제'에서 되돌릴 수 있습니다. PDF 에는 반영되지 않습니다.", quote, opts);
+}
+
+app.addEventListener("click", e=>{
+  if(e.target.closest("#exq")) excludeQuiz();
+  else if(e.target.closest("#exs")) excludeSheet();
+});
+
+function exHome(back){
+  document.onkeydown = null;
+  const row = (sec, k, small, text) => `<div class="xrow"><div class="l"><small>${esc(small)}</small>${esc(text)}</div>
+      <button class="btn2" style="min-height:36px;width:auto;padding:0 12px" data-sec="${sec}" data-k="${esc(k)}">되돌리기</button></div>`;
+  const S = Object.entries(EX.s).map(([k,v])=>row("s",k,`문장 · ${v.name}`, v.text));
+  const T = Object.entries(EX.t).map(([k,v])=>row("t",k,`유형 · ${v.type}`, v.name));
+  const Q = Object.entries(EX.q).map(([k,v])=>row("q",k,`전수 점검 ${v.part}`, v.label));
+  const AB = Object.entries(EX.ab).map(([k,v])=>row("ab",k,`전수 점검 A 빈칸 · ${v.card} ${v.name}`, v.ans));
+  const sec = (title, arr) => arr.length ? `<div class="block"><div class="sec"><span>${title}</span><i></i><em>${arr.length}</em></div>${arr.join("")}</div>` : "";
+  app.innerHTML = `
+    ${sec("뺀 문장", S)}${sec("유형에서 뺀 항목", T)}${sec("전수 점검에서 뺀 문항", Q)}${sec("전수 점검에서 뺀 빈칸", AB)}
+    ${exCount() ? "" : `<div class="block center">뺀 문제가 없습니다.</div>`}
+    <div class="stack">
+      ${exCount() ? `<button class="btn2 verm" id="xall">모두 되돌리기</button>` : ""}
+      <button class="btn2" id="xback">돌아가기</button>
+    </div>`;
+  app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{
+    delete EX[b.dataset.sec][b.dataset.k]; xsave(); buildOwners(); exHome(back);
+  });
+  const xa = document.getElementById("xall");
+  if(xa) xa.onclick = ()=>{ if(confirm("뺀 문제를 모두 되돌립니다.")){ EX = {s:{}, t:{}, q:{}, ab:{}}; xsave(); buildOwners(); exHome(back); } };
+  document.getElementById("xback").onclick = back;
+  window.scrollTo(0,0);
 }
 
 home();

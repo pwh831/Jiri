@@ -17,7 +17,7 @@
 
 결과 data/sheet.js 는 웹(index.html)이 읽고, 같은 내용으로 PDF 를 인쇄한다.
 """
-import argparse, json, os, re, subprocess, sys
+import argparse, hashlib, json, os, re, subprocess, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from make_summary import b64, font_face, esc, render_pdf, stamp_footer  # noqa: E402
@@ -116,6 +116,7 @@ def cand_list(spans):
 
 
 JOINED = set()
+GENERAL = re.compile(r"^[^,.→]{1,32}?(?:은|는|:)\s")
 WEAK = re.compile(r"^(인구 약|전통적 지역 구분|대지역 구분)")
 PARTICLE = set("은는이가을를의에와과도로으만및")
 
@@ -327,12 +328,25 @@ def build_cross(data, units):
                         owners[key(t)].append(it["id"])
     items = {it["id"]: it for u in data["units"] for c in u["cats"] for it in c["items"]}
 
-    stat = {"b": 0, "b_multi": 0, "c": 0, "c_lines": 0}
+    stat = {"b": 0, "b_multi": 0, "c": 0, "c_lines": 0, "b_general": 0}
+
+    def general_note(x):
+        """지명 항목에 달린 각주 가운데 그 곳이 아니라 개념을 설명하는 것
+        ('지리적 표시제는 …', '히스패닉은 …'). B 에서 '이천시'·'플로리다반도'를 답으로
+        요구하면 이상한 문제가 되어 B 에서만 뺀다(A·C 에는 그대로 있다)."""
+        kind, t = x
+        if kind != "n":
+            return False
+        if any(re.search(flex(n), t) for n in masks_for(cur[0])):
+            return False
+        return bool(GENERAL.match(NOTE_TAG.sub("", t)))
+    cur = [None]
 
     def weak(t):
         return len(owners.get(key(t), [])) > 1 or WEAK.search(t)
 
     def questions(it, fs):
+        cur[0] = it
         """문장 하나 = 문항 하나. 혼자서는 어디인지 가려지지 않는 문장(여러 곳이 같은 문장을
         가졌거나 '인구 약 ○만 명'·'전통적 지역 구분' 같은 것)은 같은 항목의 다른 문장에 붙여
         두 줄짜리 문항으로 만든다."""
@@ -373,7 +387,13 @@ def build_cross(data, units):
             for it in c["items"]:
                 fs = [("f", t) for t in it["features"]] + [("n", t) for t in it["notes"]]
                 if not shows_name(c["key"]):
-                    b += questions(it, fs)
+                    keep = fs
+                    cur[0] = it
+                    if c["key"] not in ("term", "tradition"):
+                        keep = [x for x in fs if not general_note(x)]
+                        stat["b_general"] += len(fs) - len(keep)
+                    if keep:
+                        b += questions(it, keep)
                 if fs:
                     e = {"item": it["id"], "n": len(fs)}
                     if mapof.get(it["id"]):
@@ -391,6 +411,7 @@ def build_cross(data, units):
         random.Random("B" + uo["no"]).shuffle(b)
         for i, q in enumerate(b, 1):
             q["id"] = f'{uo["no"]}-B{i:02d}'
+            q["k"] = "B:" + hashlib.sha1("|".join(l["t"] for l in q["lines"]).encode()).hexdigest()[:10]
         for i, e in enumerate(cc, 1):
             e["id"] = f'{uo["no"]}-C{i:02d}'
         uo["b"], uo["c"] = b, cc
@@ -728,7 +749,7 @@ def main():
     write_js(units)
     print(f"data/sheet.js  카드 {stat['cards']} · 이름 칸 {stat['names']} · 빈칸 {stat['blanks']} · "
           f"문장 {stat['lines']}(빈칸 없는 문장 {stat['bare']})\n"
-          f"               B 특징→이름 {stat['b']}문항(정답 여럿 {stat['b_multi']}) · "
+          f"               B 특징→이름 {stat['b']}문항(개념 설명 각주 {stat['b_general']}줄 제외) · "
           f"C 이름→특징 {stat['c']}항목 {stat['c_lines']}가지")
     if a.no_pdf:
         return
