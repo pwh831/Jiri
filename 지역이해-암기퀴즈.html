@@ -1476,6 +1476,15 @@ function josa(word, withJong, without){
   return (code - 0xAC00) % 28 === 0 ? without : withJong;
 }
 const isOverview = c => /_ov$/.test(c);
+/* 단원 개관(수도권의 범위와 특색, 강원 지방의 기온 …)은 '주제'가 학습지의 소제목일 뿐이다.
+ * "이 설명은 어느 소제목인가"를 묻는 문제(특징→주제, O·X, 오류 찾기, 공통점)는 내지 않고,
+ * 내용을 묻는 문제(설명으로 옳은 것, 보기 조합, 떠올리기)만 낸다. 오답 보기도 같은 지방의
+ * 다른 소제목이 아니라 다른 지방의 개관에서 가져와 '어느 지방 이야기인가'를 묻게 한다. */
+const isRegionOv = c => /^(sudogwon|chungcheong|gangwon|honam)_ov$/.test(c);
+const OV_NO = ["rfeat","ox","error","common","name"];
+/* 다만 수도권의 시기별 변화(1960년대 ~ 2000년대 이후, 1·2기 신도시)는 시기를 가르는 것 자체가
+ * 학습 내용이라, 이 무리끼리는 서로 오답 보기가 된다. */
+const OV_SERIES = ["ov_sd1","ov_sd2","ov_sd3","ov_sd4","ov_sd5","ov_sd6","ov_sd7"];
 const kindOf  = c => KIND[c] || (isOverview(c) ? "주제" : "지역");
 /* '특징'이라는 말이 안 맞는 갈래가 있다 (용어는 뜻, 개관은 내용) */
 const whatOf  = c => c === "term" ? "뜻과 예" : isOverview(c) ? "내용" : "특징";
@@ -1607,7 +1616,7 @@ function home(){
         return `<button class="chip ${t.big?"wide ":""}${on?"on":""}" data-t="${t.key}">${t.label}
         <small>${t.hint}</small></button>`; }).join("")}
     </div>
-    <div class="hint" style="margin:-2px 0 10px;font-size:12px;color:var(--faint)">
+    <div class="thint" style="margin:-2px 0 10px;font-size:12px;color:var(--faint)">
       유형은 여러 개를 함께 고를 수 있습니다 · 지금 ${selTypes().length}가지를 섞어서 냅니다</div>
     <div class="grid g4" id="counts" style="margin-bottom:9px">
       ${[10,20,30,999].map(n=>`<button class="chip ${cfg.count===n?"on":""} ${n===999?"":"mono"}" data-n="${n}">${n===999?"전체":n}</button>`).join("")}
@@ -1750,6 +1759,7 @@ buildOwners();
  * 보기 조합을, 묶이는 속성이 없으면 공통점 문제를 낼 수 없다. */
 function canDo(item, type){
   if (EX.t[type + "|" + item.id]) return false;          // 이 유형에서 뺀 항목
+  if (isRegionOv(item.category) && OV_NO.includes(type)) return false;
   const n = feats(item).length;
   if (type === "name")   return hasMap(item);
   if (type === "combo")  return n >= 2 && pickFalse(item, 2).length >= 2;
@@ -1777,6 +1787,10 @@ function makeQ(item){
 /* 같은 갈래의 다른 항목(특징이 있는 것만) */
 function siblings(item){
   const self = norm(item.name);
+  if (OV_SERIES.includes(item.id))                       // 수도권 시기별 변화끼리
+    return ITEMS.filter(i=>OV_SERIES.includes(i.id) && i.id!==item.id && feats(i).length);
+  if (isRegionOv(item.category))                          // 다른 지방의 개관
+    return ITEMS.filter(i=>isRegionOv(i.category) && i.category!==item.category && feats(i).length);
   return ITEMS.filter(i=>i.category===item.category && i.id!==item.id
                       && norm(i.name)!==self && feats(i).length);
 }
@@ -1793,7 +1807,9 @@ function pickFalse(item, n){
   const trapPool = shuffle(take(trapMates(item)));
   const sibPool  = shuffle(take(siblings(item)));
   const wide     = () => shuffle(take(ITEMS.filter(i=>i.scope===item.scope && i.id!==item.id
-                                               && norm(i.name)!==self && feats(i).length)));
+                                               && norm(i.name)!==self && feats(i).length
+                                               && !(isRegionOv(item.category) && !OV_SERIES.includes(item.id)
+                                                    && i.category===item.category))));
   const seen = new Set(), out = [];
   const grab = pool => { while (pool.length){ const o = pool.shift(); const k = norm(o.f);
       if (!seen.has(k)){ seen.add(k); out.push(o); return true; } } return false; };
@@ -1872,7 +1888,8 @@ function buildReverse(item){
   const owners = new Set(FEATOWNERS[norm(clue)]);          // 같은 특징을 가진 지역은 보기에서 제외
   const self = norm(item.name);
   const pick = arr => shuffle(arr.filter(i=>
-        !owners.has(i.id) && norm(i.name)!==self));
+        !owners.has(i.id) && norm(i.name)!==self
+        && (isOverview(item.category) || !isOverview(i.category))));   // 지역을 묻는데 소제목이 보기로 나오지 않게
   const picks = [];
   const push = arr => { for(const i of arr){
       if(!picks.some(p=>norm(p.name)===norm(i.name))){ picks.push(i); if(picks.length>=4) return; } } };
@@ -1893,14 +1910,15 @@ function buildChoices(item){
   const take = arr => arr.filter(i=>i.id!==item.id && norm(i.name)!==self)
                         .flatMap(i=>feats(i).map(f=>({f, from:i.name})))
                         .filter(o=>!mine.has(norm(o.f)));
-  let pool = shuffle(take(ITEMS.filter(i=>i.category===item.category)));
   const seen = new Set([norm(answer)]);
   const picks = [];
   const push = arr => { for(const o of arr){ const k=norm(o.f);
       if(!seen.has(k)){ seen.add(k); picks.push(o); if(picks.length>=4) return; } } };
-  push(pool);
-  if(picks.length<4) push(shuffle(take(ITEMS.filter(i=>i.scope===item.scope))));
-  if(picks.length<4) push(shuffle(take(ITEMS)));
+  push(shuffle(take(siblings(item))));                    // 같은 갈래(개관은 다른 지방의 개관)
+  // 모자라면 넓혀 뽑되, 개관이면 같은 지방의 다른 소제목은 쓰지 않는다
+  const ok = i => !isRegionOv(item.category) || OV_SERIES.includes(item.id) || !isRegionOv(i.category) || i.category!==item.category;
+  if(picks.length<4) push(shuffle(take(ITEMS.filter(i=>i.scope===item.scope && ok(i)))));
+  if(picks.length<4) push(shuffle(take(ITEMS.filter(ok))));
   const opts = shuffle([{f:answer, from:item.name, ok:true}, ...picks.map(o=>({...o, ok:false}))]);
   return {opts};
 }
